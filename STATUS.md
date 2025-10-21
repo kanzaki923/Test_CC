@@ -689,8 +689,45 @@ npm install -D jest @testing-library/react ...
 - [x] トースト通知システム完全実装
 - [x] ゴミ箱機能完全実装
 
+### ✨ 今回のセッションで完了したこと（2025-10-21 - Session 4）
+
+**Phase 8: タグ機能実装（TDD）**
+- [x] Tag型定義追加（lib/types/index.ts）
+- [x] IndexedDBスキーマにtagsストア追加
+- [x] tagStore作成（12テスト成功）
+  - [x] addTag - タグ追加
+  - [x] updateTag - タグ更新
+  - [x] deleteTag - タグ削除
+  - [x] getTagUsageCount - タグ使用回数取得
+  - [x] getTagsSortedByUsage - 使用回数順ソート
+  - [x] deleteTagAndRemoveFromMemos - タグ削除＋メモから削除
+  - [x] hydrate - IndexedDB同期
+- [x] TagInput コンポーネント作成
+  - [x] タグ追加/削除UI
+  - [x] タグ候補表示（オートコンプリート）
+  - [x] Enterキーで追加、Backspaceで削除
+- [x] TagList コンポーネント作成
+  - [x] タグ一覧表示
+  - [x] 使用回数バッジ表示
+  - [x] クリックでフィルタリング
+- [x] MemoEditor にタグ機能統合
+  - [x] TagInput統合
+  - [x] タグ自動保存
+- [x] page.tsx にタグフィルター追加
+  - [x] TagList表示
+  - [x] タグでメモフィルタリング
+- [x] MemoList のタグフィルタリング実装
+- [x] uiStore に selectedTagNames 追加
+- [x] useInitializeData でtagStore hydrate呼び出し
+
+**結果**
+- [x] ビルド成功（121 kB First Load JS）
+- [x] 全テスト成功（100/100）
+- [x] タグ機能完全実装
+- [x] タグでメモをフィルタリング可能
+- [x] タグの追加・削除・表示が動作
+
 ### 次のセッションでやること
-- [ ] タグ機能実装
 - [ ] Markdown対応
 - [ ] エクスポート機能（JSON, Markdown, PDF）
 
@@ -754,7 +791,7 @@ PORT=3001 npm run dev
 ---
 
 **最終更新**: 2025-10-21
-**次回セッション**: タグ機能、Markdown対応から開始
-**状態**: ✅ キーボードショートカット完了、トースト通知完了、ゴミ箱完了、全テスト成功（88/88）
+**次回セッション**: Markdown対応、エクスポート機能から開始
+**状態**: ✅ タグ機能完了、全テスト成功（100/100）、ビルド成功（121 kB）
 
 Happy Coding! 🚀✨

@@ -22,6 +22,7 @@ export function MemoList({ selectedMemoId, onSelectMemo }: MemoListProps) {
   const sortBy = useUIStore((state) => state.sortBy);
   const sortOrder = useUIStore((state) => state.sortOrder);
   const selectedCategoryId = useUIStore((state) => state.selectedCategoryId);
+  const selectedTagNames = useUIStore((state) => state.selectedTagNames);
   const isTrashView = useUIStore((state) => state.isTrashView);
 
   // Filter and sort memos
@@ -44,6 +45,13 @@ export function MemoList({ selectedMemoId, onSelectMemo }: MemoListProps) {
     if (selectedCategoryId !== null && !isTrashView) {
       memosArray = memosArray.filter(
         (memo) => memo.categoryId === selectedCategoryId
+      );
+    }
+
+    // Filter by tags if selected
+    if (selectedTagNames.length > 0 && !isTrashView) {
+      memosArray = memosArray.filter((memo) =>
+        selectedTagNames.some((tagName) => memo.tags.includes(tagName))
       );
     }
 
@@ -72,7 +80,7 @@ export function MemoList({ selectedMemoId, onSelectMemo }: MemoListProps) {
     const unpinnedMemos = memosArray.filter((memo) => !memo.isPinned);
 
     return [...pinnedMemos, ...unpinnedMemos];
-  }, [memos, searchQuery, searchMemos, selectedCategoryId, sortBy, sortOrder, isTrashView]);
+  }, [memos, searchQuery, searchMemos, selectedCategoryId, selectedTagNames, sortBy, sortOrder, isTrashView]);
 
   const handleDelete = (id: string) => {
     if (confirm('このメモを削除しますか？')) {

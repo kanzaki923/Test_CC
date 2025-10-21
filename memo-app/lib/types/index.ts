@@ -20,6 +20,13 @@ export interface Category {
   createdAt: number;
 }
 
+export interface Tag {
+  id: string;
+  name: string;
+  color: string;
+  createdAt: number;
+}
+
 export type SortBy = "updatedAt" | "createdAt" | "title";
 export type SortOrder = "asc" | "desc";
 export type ViewMode = "list" | "grid" | "compact";

@@ -3,8 +3,10 @@
 import { Input } from "@/components/ui/Input";
 import { useEffect, useState, useRef } from "react";
 import { useMemoStore } from "@/lib/store/memoStore";
+import { useTagStore } from "@/lib/store/tagStore";
 import { useToastStore } from "@/lib/store/toastStore";
 import { useKeyboardShortcuts } from "@/lib/hooks/useKeyboardShortcuts";
+import { TagInput } from "@/components/tag/TagInput";
 
 interface MemoEditorProps {
   memoId: string | null;
@@ -33,10 +35,13 @@ function formatDate(timestamp: number): string {
 export function MemoEditor({ memoId }: MemoEditorProps) {
   const memos = useMemoStore((state) => state.memos);
   const updateMemo = useMemoStore((state) => state.updateMemo);
+  const allTags = useTagStore((state) => state.getAllTags());
+  const addTag = useTagStore((state) => state.addTag);
   const addToast = useToastStore((state) => state.addToast);
 
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
   const isFirstSave = useRef(true);
 
@@ -48,8 +53,9 @@ export function MemoEditor({ memoId }: MemoEditorProps) {
     if (!memo) return;
 
     // Only save if there are changes
-    if (memo.title !== title || memo.content !== content) {
-      updateMemo(memoId, { title, content });
+    const tagsChanged = JSON.stringify(memo.tags) !== JSON.stringify(tags);
+    if (memo.title !== title || memo.content !== content || tagsChanged) {
+      updateMemo(memoId, { title, content, tags });
       addToast({
         message: "メモを保存しました",
         type: "success",
@@ -65,6 +71,23 @@ export function MemoEditor({ memoId }: MemoEditorProps) {
     'mod+s': handleManualSave,
   });
 
+  // Tag handlers
+  const handleAddTag = (tagName: string) => {
+    // Create tag in store if it doesn't exist (with default color)
+    const existingTag = allTags.find(t => t.name.toLowerCase() === tagName.toLowerCase());
+    if (!existingTag) {
+      const colors = ['#3b82f6', '#ef4444', '#f59e0b', '#10b981', '#8b5cf6', '#ec4899'];
+      const randomColor = colors[Math.floor(Math.random() * colors.length)];
+      addTag(tagName, randomColor);
+    }
+
+    setTags(prev => [...prev, tagName]);
+  };
+
+  const handleRemoveTag = (tagName: string) => {
+    setTags(prev => prev.filter(t => t !== tagName));
+  };
+
   // Load memo data when memoId changes
   useEffect(() => {
     if (memoId) {
@@ -72,10 +95,12 @@ export function MemoEditor({ memoId }: MemoEditorProps) {
       if (memo) {
         setTitle(memo.title);
         setContent(memo.content);
+        setTags(memo.tags || []);
       }
     } else {
       setTitle("");
       setContent("");
+      setTags([]);
     }
     isFirstSave.current = true;
   }, [memoId, memos]);
@@ -88,14 +113,15 @@ export function MemoEditor({ memoId }: MemoEditorProps) {
     if (!memo) return;
 
     // Check if content has changed
-    if (memo.title === title && memo.content === content) {
+    const tagsChanged = JSON.stringify(memo.tags) !== JSON.stringify(tags);
+    if (memo.title === title && memo.content === content && !tagsChanged) {
       return;
     }
 
     setSaveStatus("saving");
 
     const timeoutId = setTimeout(() => {
-      updateMemo(memoId, { title, content });
+      updateMemo(memoId, { title, content, tags });
       setSaveStatus("saved");
 
       // Auto-save is silent (no toast notification)
@@ -107,7 +133,7 @@ export function MemoEditor({ memoId }: MemoEditorProps) {
     }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [memoId, title, content, memos, updateMemo]);
+  }, [memoId, title, content, tags, memos, updateMemo]);
 
   if (!memoId) {
     return (
@@ -151,6 +177,17 @@ export function MemoEditor({ memoId }: MemoEditorProps) {
         placeholder="メモを入力..."
         className="flex-1 resize-none p-4 focus:outline-none bg-background text-foreground font-mono text-sm"
       />
+
+      {/* タグエリア */}
+      <div className="px-4 py-3 border-t border-border bg-background">
+        <TagInput
+          tags={tags}
+          suggestions={allTags.map(t => t.name)}
+          onAddTag={handleAddTag}
+          onRemoveTag={handleRemoveTag}
+          placeholder="タグを追加..."
+        />
+      </div>
 
       {/* ステータスバー */}
       <div className="px-4 py-2 border-t border-border flex items-center justify-between text-xs text-muted-foreground bg-background">

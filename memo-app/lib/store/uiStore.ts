@@ -4,6 +4,7 @@ import { SortBy, SortOrder, ViewMode } from '@/lib/types';
 interface UIStore {
   selectedMemoId: string | null;
   selectedCategoryId: string | null;
+  selectedTagNames: string[];
   searchQuery: string;
   viewMode: ViewMode;
   sortBy: SortBy;
@@ -13,6 +14,8 @@ interface UIStore {
 
   setSelectedMemoId: (id: string | null) => void;
   setSelectedCategoryId: (id: string | null) => void;
+  setSelectedTagNames: (tagNames: string[]) => void;
+  toggleTagFilter: (tagName: string) => void;
   setSearchQuery: (query: string) => void;
   setViewMode: (mode: ViewMode) => void;
   setSortBy: (sortBy: SortBy) => void;
@@ -26,6 +29,7 @@ interface UIStore {
 const initialState = {
   selectedMemoId: null,
   selectedCategoryId: null,
+  selectedTagNames: [] as string[],
   searchQuery: '',
   viewMode: 'list' as ViewMode,
   sortBy: 'updatedAt' as SortBy,
@@ -39,6 +43,16 @@ export const useUIStore = create<UIStore>((set) => ({
 
   setSelectedMemoId: (id) => set({ selectedMemoId: id }),
   setSelectedCategoryId: (id) => set({ selectedCategoryId: id, isTrashView: false }),
+  setSelectedTagNames: (tagNames) => set({ selectedTagNames: tagNames }),
+  toggleTagFilter: (tagName) =>
+    set((state) => {
+      const isSelected = state.selectedTagNames.includes(tagName);
+      return {
+        selectedTagNames: isSelected
+          ? state.selectedTagNames.filter((t) => t !== tagName)
+          : [...state.selectedTagNames, tagName],
+      };
+    }),
   setSearchQuery: (query) => set({ searchQuery: query }),
   setViewMode: (mode) => set({ viewMode: mode }),
   setSortBy: (sortBy) => set({ sortBy }),
