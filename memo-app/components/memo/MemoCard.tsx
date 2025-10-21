@@ -8,6 +8,8 @@ interface MemoCardProps {
   memo: Memo;
   isSelected: boolean;
   onClick: () => void;
+  onDelete: () => void;
+  onPin: () => void;
 }
 
 function formatDate(timestamp: number): string {
@@ -30,7 +32,7 @@ function formatDate(timestamp: number): string {
   });
 }
 
-export function MemoCard({ memo, isSelected, onClick }: MemoCardProps) {
+export function MemoCard({ memo, isSelected, onClick, onDelete, onPin }: MemoCardProps) {
   return (
     <article
       role="article"
@@ -72,7 +74,7 @@ export function MemoCard({ memo, isSelected, onClick }: MemoCardProps) {
           <button
             onClick={(e) => {
               e.stopPropagation();
-              // ピン留めトグル処理
+              onPin();
             }}
             className="p-1 hover:bg-background rounded"
             aria-label={memo.isPinned ? "ピン留めを解除" : "ピン留め"}
@@ -88,7 +90,7 @@ export function MemoCard({ memo, isSelected, onClick }: MemoCardProps) {
           <button
             onClick={(e) => {
               e.stopPropagation();
-              // 削除処理
+              onDelete();
             }}
             className="p-1 hover:bg-background rounded text-destructive"
             aria-label="削除"

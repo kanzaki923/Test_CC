@@ -1,25 +1,94 @@
 "use client";
 
 import { Input } from "@/components/ui/Input";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useMemoStore } from "@/lib/store/memoStore";
 
 interface MemoEditorProps {
   memoId: string | null;
 }
 
+function formatDate(timestamp: number): string {
+  const date = new Date(timestamp);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+
+  if (diffMins < 1) return "たった今";
+  if (diffMins < 60) return `${diffMins}分前`;
+  if (diffHours < 24) return `${diffHours}時間前`;
+
+  return date.toLocaleDateString("ja-JP", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 export function MemoEditor({ memoId }: MemoEditorProps) {
-  const [title, setTitle] = useState("プロジェクト会議メモ");
-  const [content, setContent] = useState(
-    "次回のプロジェクト会議で議論する内容：\n- 新機能の仕様確認\n- スケジュール調整\n- リソース配分"
-  );
-  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">(
-    "idle"
-  );
+  const memos = useMemoStore((state) => state.memos);
+  const updateMemo = useMemoStore((state) => state.updateMemo);
+
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+
+  // Load memo data when memoId changes
+  useEffect(() => {
+    if (memoId) {
+      const memo = memos.get(memoId);
+      if (memo) {
+        setTitle(memo.title);
+        setContent(memo.content);
+      }
+    } else {
+      setTitle("");
+      setContent("");
+    }
+  }, [memoId, memos]);
+
+  // Auto-save with debounce
+  useEffect(() => {
+    if (!memoId) return;
+
+    const memo = memos.get(memoId);
+    if (!memo) return;
+
+    // Check if content has changed
+    if (memo.title === title && memo.content === content) {
+      return;
+    }
+
+    setSaveStatus("saving");
+
+    const timeoutId = setTimeout(() => {
+      updateMemo(memoId, { title, content });
+      setSaveStatus("saved");
+
+      setTimeout(() => {
+        setSaveStatus("idle");
+      }, 2000);
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [memoId, title, content, memos, updateMemo]);
 
   if (!memoId) {
     return (
       <div className="flex h-full items-center justify-center text-muted-foreground bg-background">
         <p>メモを選択してください</p>
+      </div>
+    );
+  }
+
+  const memo = memos.get(memoId);
+  if (!memo) {
+    return (
+      <div className="flex h-full items-center justify-center text-muted-foreground bg-background">
+        <p>メモが見つかりません</p>
       </div>
     );
   }
@@ -52,7 +121,7 @@ export function MemoEditor({ memoId }: MemoEditorProps) {
       {/* ステータスバー */}
       <div className="px-4 py-2 border-t border-border flex items-center justify-between text-xs text-muted-foreground bg-background">
         <span>{content.length} 文字</span>
-        <span>最終更新: 10分前</span>
+        <span>最終更新: {formatDate(memo.updatedAt)}</span>
       </div>
     </div>
   );

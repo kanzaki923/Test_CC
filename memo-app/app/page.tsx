@@ -6,10 +6,31 @@ import { CategorySidebar } from "@/components/category/CategorySidebar";
 import { MemoList } from "@/components/memo/MemoList";
 import { MemoEditor } from "@/components/memo/MemoEditor";
 import { Plus, Search } from "lucide-react";
-import { useState } from "react";
+import { useMemoStore } from "@/lib/store/memoStore";
+import { useUIStore } from "@/lib/store/uiStore";
+import { useInitializeData } from "@/lib/hooks/useInitializeData";
 
 export default function Home() {
-  const [selectedMemoId, setSelectedMemoId] = useState<string | null>("1");
+  // Initialize default data
+  useInitializeData();
+
+  // Get state from stores
+  const addMemo = useMemoStore((state) => state.addMemo);
+  const selectedMemoId = useUIStore((state) => state.selectedMemoId);
+  const setSelectedMemoId = useUIStore((state) => state.setSelectedMemoId);
+  const searchQuery = useUIStore((state) => state.searchQuery);
+  const setSearchQuery = useUIStore((state) => state.setSearchQuery);
+  const sortBy = useUIStore((state) => state.sortBy);
+  const setSortBy = useUIStore((state) => state.setSortBy);
+
+  const handleNewMemo = () => {
+    const id = addMemo({
+      title: '新規メモ',
+      content: '',
+      categoryId: null,
+    });
+    setSelectedMemoId(id);
+  };
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -22,7 +43,7 @@ export default function Home() {
       <main className="flex-1 flex flex-col overflow-hidden">
         {/* ツールバー */}
         <div className="p-4 border-b border-border flex items-center gap-4 bg-background">
-          <Button size="sm" data-tour="new-memo">
+          <Button size="sm" data-tour="new-memo" onClick={handleNewMemo}>
             <Plus className="h-4 w-4 mr-2" />
             新規メモ
           </Button>
@@ -33,11 +54,17 @@ export default function Home() {
               type="search"
               placeholder="メモを検索... (Cmd+K)"
               className="pl-10"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
 
           <div className="hidden sm:flex items-center gap-2">
-            <select className="h-9 px-3 rounded-md border border-input bg-background text-sm">
+            <select
+              className="h-9 px-3 rounded-md border border-input bg-background text-sm"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as any)}
+            >
               <option value="updatedAt">更新日時</option>
               <option value="createdAt">作成日時</option>
               <option value="title">タイトル</option>
