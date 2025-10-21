@@ -13,7 +13,7 @@ import { useUIStore } from "@/lib/store/uiStore";
 import { useInitializeData } from "@/lib/hooks/useInitializeData";
 import { useKeyboardShortcuts } from "@/lib/hooks/useKeyboardShortcuts";
 import { useToastStore } from "@/lib/store/toastStore";
-import { useRef } from "react";
+import { useRef, useMemo } from "react";
 
 export default function Home() {
   // Initialize default data
@@ -24,8 +24,26 @@ export default function Home() {
 
   // Get state from stores
   const addMemo = useMemoStore((state) => state.addMemo);
-  const tags = useTagStore((state) => state.getTagsSortedByUsage());
+  const tagsMap = useTagStore((state) => state.tags);
   const getTagUsageCount = useTagStore((state) => state.getTagUsageCount);
+
+  // Sort tags by usage count (memoized to avoid infinite loop)
+  const tags = useMemo(() => {
+    const allTags = Array.from(tagsMap.values());
+    return allTags.sort((a, b) => {
+      const countA = getTagUsageCount(a.name);
+      const countB = getTagUsageCount(b.name);
+
+      // First sort by usage count (descending)
+      if (countB !== countA) {
+        return countB - countA;
+      }
+
+      // If usage count is same, sort by name (ascending)
+      return a.name.localeCompare(b.name);
+    });
+  }, [tagsMap, getTagUsageCount]);
+
   const selectedMemoId = useUIStore((state) => state.selectedMemoId);
   const setSelectedMemoId = useUIStore((state) => state.setSelectedMemoId);
   const selectedTagNames = useUIStore((state) => state.selectedTagNames);
