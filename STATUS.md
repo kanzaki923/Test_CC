@@ -113,9 +113,9 @@
 
 ### 🚧 未実装（次のフェーズ）
 
-- ❌ キーボードショートカット
-- ❌ トースト通知
-- ❌ ゴミ箱機能
+- ✅ キーボードショートカット（完了）
+- ✅ トースト通知（完了）
+- ✅ ゴミ箱機能（完了）
 - ❌ タグ機能
 - ❌ Markdown対応
 - ❌ エクスポート機能
@@ -650,12 +650,49 @@ npm install -D jest @testing-library/react ...
 - [x] MemoEditor に自動保存機能追加
 - [x] CategorySidebar をストアに接続
 
+### ✨ 今回のセッションで完了したこと（2025-10-21 - Session 3）
+
+**Phase 5: キーボードショートカット実装（TDD）**
+- [x] useKeyboardShortcuts フック作成（11テスト成功）
+  - [x] Cmd/Ctrl + N - 新規メモ作成
+  - [x] Cmd/Ctrl + K - 検索フォーカス
+  - [x] Escape - 選択解除
+- [x] app/page.tsx にショートカット統合
+
+**Phase 6: トースト通知システム実装（TDD）**
+- [x] toastStore 作成（12テスト成功）
+  - [x] addToast - トースト追加
+  - [x] removeToast - トースト削除
+  - [x] clearToasts - 全クリア
+- [x] Toast UI コンポーネント作成
+  - [x] 4種類のトーストタイプ（success, error, warning, info）
+  - [x] 自動消去機能（デフォルト3秒）
+  - [x] スライドインアニメーション
+- [x] app/layout.tsx に ToastContainer 追加
+- [x] 保存・作成時のトースト通知実装
+
+**Phase 7: ゴミ箱機能実装（TDD）**
+- [x] Memo 型に isDeleted, deletedAt フィールド追加
+- [x] memoStore にゴミ箱操作追加（17テスト成功）
+  - [x] moveToTrash - ゴミ箱に移動
+  - [x] restoreFromTrash - 復元
+  - [x] permanentlyDelete - 完全削除
+  - [x] getDeletedMemos - 削除済みメモ取得
+- [x] uiStore に isTrashView フィールド追加
+- [x] CategorySidebar にゴミ箱表示追加
+- [x] MemoList でゴミ箱表示対応
+
+**結果**
+- [x] ビルド成功（119 kB First Load JS）
+- [x] 全テスト成功（88/88）
+- [x] キーボードショートカット完全実装
+- [x] トースト通知システム完全実装
+- [x] ゴミ箱機能完全実装
+
 ### 次のセッションでやること
-- [ ] キーボードショートカット実装
-- [ ] トースト通知システム実装
-- [ ] ゴミ箱機能実装
 - [ ] タグ機能実装
 - [ ] Markdown対応
+- [ ] エクスポート機能（JSON, Markdown, PDF）
 
 ---
 
@@ -717,7 +754,7 @@ PORT=3001 npm run dev
 ---
 
 **最終更新**: 2025-10-21
-**次回セッション**: キーボードショートカット、トースト通知から開始
-**状態**: ✅ IndexedDB永続化完了、全テスト成功（62/62）、データ保持機能実装済み
+**次回セッション**: タグ機能、Markdown対応から開始
+**状態**: ✅ キーボードショートカット完了、トースト通知完了、ゴミ箱完了、全テスト成功（88/88）
 
 Happy Coding! 🚀✨

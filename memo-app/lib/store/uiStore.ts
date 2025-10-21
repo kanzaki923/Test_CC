@@ -9,6 +9,7 @@ interface UIStore {
   sortBy: SortBy;
   sortOrder: SortOrder;
   isSidebarOpen: boolean;
+  isTrashView: boolean;
 
   setSelectedMemoId: (id: string | null) => void;
   setSelectedCategoryId: (id: string | null) => void;
@@ -18,6 +19,7 @@ interface UIStore {
   setSortOrder: (order: SortOrder) => void;
   toggleSidebar: () => void;
   setSidebarOpen: (open: boolean) => void;
+  setTrashView: (isTrash: boolean) => void;
   reset: () => void;
 }
 
@@ -29,18 +31,20 @@ const initialState = {
   sortBy: 'updatedAt' as SortBy,
   sortOrder: 'desc' as SortOrder,
   isSidebarOpen: true,
+  isTrashView: false,
 };
 
 export const useUIStore = create<UIStore>((set) => ({
   ...initialState,
 
   setSelectedMemoId: (id) => set({ selectedMemoId: id }),
-  setSelectedCategoryId: (id) => set({ selectedCategoryId: id }),
+  setSelectedCategoryId: (id) => set({ selectedCategoryId: id, isTrashView: false }),
   setSearchQuery: (query) => set({ searchQuery: query }),
   setViewMode: (mode) => set({ viewMode: mode }),
   setSortBy: (sortBy) => set({ sortBy }),
   setSortOrder: (order) => set({ sortOrder: order }),
   toggleSidebar: () => set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
   setSidebarOpen: (open) => set({ isSidebarOpen: open }),
+  setTrashView: (isTrash) => set({ isTrashView: isTrash, selectedCategoryId: null }),
   reset: () => set(initialState),
 }));

@@ -17,19 +17,26 @@ export function CategorySidebar() {
 
   const selectedCategoryId = useUIStore((state) => state.selectedCategoryId);
   const setSelectedCategoryId = useUIStore((state) => state.setSelectedCategoryId);
+  const isTrashView = useUIStore((state) => state.isTrashView);
+  const setTrashView = useUIStore((state) => state.setTrashView);
 
   // Calculate memo counts by category
   const memoCounts = useMemo(() => {
     const counts = new Map<string | null, number>();
     let total = 0;
+    let trashCount = 0;
 
     Array.from(memos.values()).forEach((memo) => {
-      const count = counts.get(memo.categoryId) || 0;
-      counts.set(memo.categoryId, count + 1);
-      total++;
+      if (memo.isDeleted) {
+        trashCount++;
+      } else {
+        const count = counts.get(memo.categoryId) || 0;
+        counts.set(memo.categoryId, count + 1);
+        total++;
+      }
     });
 
-    return { counts, total };
+    return { counts, total, trashCount };
   }, [memos]);
 
   const sortedCategories = getCategoriesSorted();
@@ -62,7 +69,7 @@ export function CategorySidebar() {
           onClick={() => setSelectedCategoryId(null)}
           className={cn(
             "w-full flex items-center justify-between px-4 py-3 text-left hover:bg-accent transition-colors",
-            selectedCategoryId === null && "bg-accent"
+            selectedCategoryId === null && !isTrashView && "bg-accent"
           )}
         >
           <div className="flex items-center gap-2">
@@ -81,7 +88,7 @@ export function CategorySidebar() {
             onClick={() => setSelectedCategoryId(category.id)}
             className={cn(
               "w-full flex items-center justify-between px-4 py-3 text-left hover:bg-accent transition-colors",
-              selectedCategoryId === category.id && "bg-accent"
+              selectedCategoryId === category.id && !isTrashView && "bg-accent"
             )}
           >
             <div className="flex items-center gap-2">
@@ -106,12 +113,18 @@ export function CategorySidebar() {
         <div className="border-t border-border my-2" />
 
         {/* ゴミ箱 */}
-        <button className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-accent transition-colors">
+        <button
+          onClick={() => setTrashView(true)}
+          className={cn(
+            "w-full flex items-center justify-between px-4 py-3 text-left hover:bg-accent transition-colors",
+            isTrashView && "bg-accent"
+          )}
+        >
           <div className="flex items-center gap-2">
             <Trash2 className="h-4 w-4 text-muted-foreground" />
             <span>ゴミ箱</span>
           </div>
-          <span className="text-xs text-muted-foreground">0</span>
+          <span className="text-xs text-muted-foreground">{memoCounts.trashCount}</span>
         </button>
       </div>
     </div>

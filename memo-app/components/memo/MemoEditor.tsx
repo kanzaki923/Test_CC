@@ -1,8 +1,10 @@
 "use client";
 
 import { Input } from "@/components/ui/Input";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useMemoStore } from "@/lib/store/memoStore";
+import { useToastStore } from "@/lib/store/toastStore";
+import { useKeyboardShortcuts } from "@/lib/hooks/useKeyboardShortcuts";
 
 interface MemoEditorProps {
   memoId: string | null;
@@ -31,10 +33,37 @@ function formatDate(timestamp: number): string {
 export function MemoEditor({ memoId }: MemoEditorProps) {
   const memos = useMemoStore((state) => state.memos);
   const updateMemo = useMemoStore((state) => state.updateMemo);
+  const addToast = useToastStore((state) => state.addToast);
 
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const isFirstSave = useRef(true);
+
+  // Manual save function (triggered by Cmd+S)
+  const handleManualSave = () => {
+    if (!memoId) return;
+
+    const memo = memos.get(memoId);
+    if (!memo) return;
+
+    // Only save if there are changes
+    if (memo.title !== title || memo.content !== content) {
+      updateMemo(memoId, { title, content });
+      addToast({
+        message: "メモを保存しました",
+        type: "success",
+        duration: 2000,
+      });
+      setSaveStatus("saved");
+      setTimeout(() => setSaveStatus("idle"), 2000);
+    }
+  };
+
+  // Register Cmd+S shortcut for manual save
+  useKeyboardShortcuts({
+    'mod+s': handleManualSave,
+  });
 
   // Load memo data when memoId changes
   useEffect(() => {
@@ -48,9 +77,10 @@ export function MemoEditor({ memoId }: MemoEditorProps) {
       setTitle("");
       setContent("");
     }
+    isFirstSave.current = true;
   }, [memoId, memos]);
 
-  // Auto-save with debounce
+  // Auto-save with debounce (silent, no toast notification)
   useEffect(() => {
     if (!memoId) return;
 
@@ -67,6 +97,9 @@ export function MemoEditor({ memoId }: MemoEditorProps) {
     const timeoutId = setTimeout(() => {
       updateMemo(memoId, { title, content });
       setSaveStatus("saved");
+
+      // Auto-save is silent (no toast notification)
+      // Toast only shown on manual save (Cmd+S)
 
       setTimeout(() => {
         setSaveStatus("idle");
@@ -104,9 +137,10 @@ export function MemoEditor({ memoId }: MemoEditorProps) {
           className="text-lg font-semibold border-none focus-visible:ring-0 shadow-none px-0"
         />
 
-        <div className="text-xs text-muted-foreground ml-4">
-          {saveStatus === "saving" && "保存中..."}
-          {saveStatus === "saved" && "✓ 保存済み"}
+        <div className="text-xs text-muted-foreground ml-4 flex items-center gap-2">
+          {saveStatus === "saving" && <span>保存中...</span>}
+          {saveStatus === "saved" && <span>✓ 保存済み</span>}
+          {saveStatus === "idle" && <span className="text-muted-foreground/60">Cmd+S で保存</span>}
         </div>
       </div>
 

@@ -7,6 +7,8 @@ export interface Memo {
   updatedAt: number;
   isPinned: boolean;
   tags: string[];
+  isDeleted: boolean;
+  deletedAt: number | null;
 }
 
 export interface Category {

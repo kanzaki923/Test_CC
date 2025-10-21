@@ -22,18 +22,26 @@ export function MemoList({ selectedMemoId, onSelectMemo }: MemoListProps) {
   const sortBy = useUIStore((state) => state.sortBy);
   const sortOrder = useUIStore((state) => state.sortOrder);
   const selectedCategoryId = useUIStore((state) => state.selectedCategoryId);
+  const isTrashView = useUIStore((state) => state.isTrashView);
 
   // Filter and sort memos
   const filteredMemos = useMemo(() => {
     let memosArray = Array.from(memos.values());
 
+    // Filter by trash view
+    if (isTrashView) {
+      memosArray = memosArray.filter((memo) => memo.isDeleted);
+    } else {
+      memosArray = memosArray.filter((memo) => !memo.isDeleted);
+    }
+
     // Filter by search query
-    if (searchQuery.trim()) {
+    if (searchQuery.trim() && !isTrashView) {
       memosArray = searchMemos(searchQuery);
     }
 
     // Filter by category if selected
-    if (selectedCategoryId !== null) {
+    if (selectedCategoryId !== null && !isTrashView) {
       memosArray = memosArray.filter(
         (memo) => memo.categoryId === selectedCategoryId
       );
@@ -64,7 +72,7 @@ export function MemoList({ selectedMemoId, onSelectMemo }: MemoListProps) {
     const unpinnedMemos = memosArray.filter((memo) => !memo.isPinned);
 
     return [...pinnedMemos, ...unpinnedMemos];
-  }, [memos, searchQuery, searchMemos, selectedCategoryId, sortBy, sortOrder]);
+  }, [memos, searchQuery, searchMemos, selectedCategoryId, sortBy, sortOrder, isTrashView]);
 
   const handleDelete = (id: string) => {
     if (confirm('このメモを削除しますか？')) {
