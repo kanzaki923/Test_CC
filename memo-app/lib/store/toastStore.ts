@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { generateId } from '@/lib/utils/id';
 
 /**
  * Toast types
@@ -40,13 +41,6 @@ interface ToastStore {
 const DEFAULT_DURATION = 3000;
 
 /**
- * Generate a unique ID for toasts
- */
-function generateId(): string {
-  return `toast-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-}
-
-/**
  * Toast store
  *
  * @example
@@ -65,7 +59,7 @@ export const useToastStore = create<ToastStore>((set) => ({
   toasts: [],
 
   addToast: (input) => {
-    const id = generateId();
+    const id = generateId('toast');
     const toast: Toast = {
       id,
       message: input.message,

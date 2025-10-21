@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { Category } from '@/lib/types';
 import { saveToIndexedDB, loadFromIndexedDB, deleteFromIndexedDB } from '@/lib/db/indexed-db';
+import { generateId } from '@/lib/utils/id';
 
 interface CategoryInput {
   name: string;
@@ -18,10 +19,6 @@ interface CategoryStore {
   hydrate: () => Promise<void>;
   reset: () => void;
 }
-
-const generateId = (): string => {
-  return `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-};
 
 export const useCategoryStore = create<CategoryStore>((set, get) => ({
   categories: new Map(),
