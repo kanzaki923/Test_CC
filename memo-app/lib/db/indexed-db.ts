@@ -1,5 +1,5 @@
 import { openDB, DBSchema, IDBPDatabase } from 'idb';
-import type { Memo, Category } from '@/lib/types';
+import type { Memo, Category, Tag } from '@/lib/types';
 
 interface MemoAppDB extends DBSchema {
   memos: {
@@ -14,13 +14,17 @@ interface MemoAppDB extends DBSchema {
     key: string;
     value: Category;
   };
+  tags: {
+    key: string;
+    value: Tag;
+  };
 }
 
 let dbPromise: Promise<IDBPDatabase<MemoAppDB>> | null = null;
 
 function getDB() {
   if (!dbPromise) {
-    dbPromise = openDB<MemoAppDB>('memo-app-db', 1, {
+    dbPromise = openDB<MemoAppDB>('memo-app-db', 2, {
       upgrade(db) {
         // メモストア
         if (!db.objectStoreNames.contains('memos')) {
@@ -33,6 +37,11 @@ function getDB() {
         if (!db.objectStoreNames.contains('categories')) {
           db.createObjectStore('categories', { keyPath: 'id' });
         }
+
+        // タグストア
+        if (!db.objectStoreNames.contains('tags')) {
+          db.createObjectStore('tags', { keyPath: 'id' });
+        }
       },
     });
   }
@@ -41,14 +50,14 @@ function getDB() {
 
 /**
  * データをIndexedDBに保存
- * @param storeName ストア名 ('memos' or 'categories')
+ * @param storeName ストア名 ('memos' | 'categories' | 'tags')
  * @param key データのキー
  * @param value 保存するデータ
  */
-export async function saveToIndexedDB<T extends 'memos' | 'categories'>(
+export async function saveToIndexedDB<T extends 'memos' | 'categories' | 'tags'>(
   storeName: T,
   key: string,
-  value: T extends 'memos' ? Memo : Category
+  value: T extends 'memos' ? Memo : T extends 'categories' ? Category : Tag
 ): Promise<void> {
   try {
     const db = await getDB();
@@ -61,28 +70,29 @@ export async function saveToIndexedDB<T extends 'memos' | 'categories'>(
 
 /**
  * IndexedDBからすべてのデータを読み込み
- * @param storeName ストア名 ('memos' or 'categories')
+ * @param storeName ストア名 ('memos' | 'categories' | 'tags')
  * @returns データの配列
  */
-export async function loadFromIndexedDB<T extends 'memos' | 'categories'>(
+export async function loadFromIndexedDB<T extends 'memos' | 'categories' | 'tags'>(
   storeName: T
-): Promise<(T extends 'memos' ? Memo : Category)[]> {
+): Promise<{ success: boolean; data?: (T extends 'memos' ? Memo : T extends 'categories' ? Category : Tag)[] }> {
   try {
     const db = await getDB();
-    return (await db.getAll(storeName)) as (T extends 'memos' ? Memo : Category)[];
+    const data = (await db.getAll(storeName)) as (T extends 'memos' ? Memo : T extends 'categories' ? Category : Tag)[];
+    return { success: true, data };
   } catch (error) {
     console.error(`Failed to load from IndexedDB (${storeName}):`, error);
-    return [];
+    return { success: false };
   }
 }
 
 /**
  * IndexedDBからデータを削除
- * @param storeName ストア名 ('memos' or 'categories')
+ * @param storeName ストア名 ('memos' | 'categories' | 'tags')
  * @param key 削除するデータのキー
  */
 export async function deleteFromIndexedDB(
-  storeName: 'memos' | 'categories',
+  storeName: 'memos' | 'categories' | 'tags',
   key: string
 ): Promise<void> {
   try {
@@ -127,10 +137,11 @@ export async function searchMemosIndexedDB(query: string): Promise<Memo[]> {
 export async function clearDatabase(): Promise<void> {
   try {
     const db = await getDB();
-    const tx = db.transaction(['memos', 'categories'], 'readwrite');
+    const tx = db.transaction(['memos', 'categories', 'tags'], 'readwrite');
     await Promise.all([
       tx.objectStore('memos').clear(),
       tx.objectStore('categories').clear(),
+      tx.objectStore('tags').clear(),
       tx.done,
     ]);
   } catch (error) {

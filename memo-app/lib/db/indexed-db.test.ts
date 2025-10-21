@@ -24,10 +24,11 @@ describe('IndexedDB operations', () => {
 
       await saveToIndexedDB('memos', memo.id, memo);
 
-      const loaded = await loadFromIndexedDB('memos');
-      expect(loaded).toHaveLength(1);
-      expect(loaded[0].id).toBe('test-1');
-      expect(loaded[0].title).toBe('Test Memo');
+      const result = await loadFromIndexedDB('memos');
+      expect(result.success).toBe(true);
+      expect(result.data).toHaveLength(1);
+      expect(result.data![0].id).toBe('test-1');
+      expect(result.data![0].title).toBe('Test Memo');
     });
 
     it('should save a category to IndexedDB', async () => {
@@ -42,9 +43,10 @@ describe('IndexedDB operations', () => {
 
       await saveToIndexedDB('categories', category.id, category);
 
-      const loaded = await loadFromIndexedDB('categories');
-      expect(loaded).toHaveLength(1);
-      expect(loaded[0].name).toBe('Work');
+      const result = await loadFromIndexedDB('categories');
+      expect(result.success).toBe(true);
+      expect(result.data).toHaveLength(1);
+      expect(result.data![0].name).toBe('Work');
     });
 
     it('should update existing memo', async () => {
@@ -66,9 +68,10 @@ describe('IndexedDB operations', () => {
       const updatedMemo = { ...memo, title: 'Updated Title' };
       await saveToIndexedDB('memos', memo.id, updatedMemo);
 
-      const loaded = await loadFromIndexedDB('memos');
-      expect(loaded).toHaveLength(1);
-      expect(loaded[0].title).toBe('Updated Title');
+      const result = await loadFromIndexedDB('memos');
+      expect(result.success).toBe(true);
+      expect(result.data).toHaveLength(1);
+      expect(result.data![0].title).toBe('Updated Title');
     });
   });
 
@@ -103,13 +106,15 @@ describe('IndexedDB operations', () => {
       await saveToIndexedDB('memos', memo1.id, memo1);
       await saveToIndexedDB('memos', memo2.id, memo2);
 
-      const loaded = await loadFromIndexedDB('memos');
-      expect(loaded).toHaveLength(2);
+      const result = await loadFromIndexedDB('memos');
+      expect(result.success).toBe(true);
+      expect(result.data).toHaveLength(2);
     });
 
     it('should return empty array when no data exists', async () => {
-      const loaded = await loadFromIndexedDB('memos');
-      expect(loaded).toEqual([]);
+      const result = await loadFromIndexedDB('memos');
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual([]);
     });
   });
 
@@ -129,10 +134,12 @@ describe('IndexedDB operations', () => {
       };
 
       await saveToIndexedDB('memos', memo.id, memo);
-      expect(await loadFromIndexedDB('memos')).toHaveLength(1);
+      let result = await loadFromIndexedDB('memos');
+      expect(result.data).toHaveLength(1);
 
       await deleteFromIndexedDB('memos', memo.id);
-      expect(await loadFromIndexedDB('memos')).toHaveLength(0);
+      result = await loadFromIndexedDB('memos');
+      expect(result.data).toHaveLength(0);
     });
 
     it('should handle deleting non-existent item gracefully', async () => {

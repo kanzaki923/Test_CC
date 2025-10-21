@@ -119,12 +119,10 @@ export const useCategoryStore = create<CategoryStore>((set, get) => ({
   },
 
   hydrate: async () => {
-    try {
-      const categories = await loadFromIndexedDB('categories');
-      const categoriesMap = new Map(categories.map((category) => [category.id, category]));
+    const result = await loadFromIndexedDB('categories');
+    if (result.success && result.data) {
+      const categoriesMap = new Map(result.data.map((category) => [category.id, category]));
       set({ categories: categoriesMap });
-    } catch (error) {
-      console.error('Failed to hydrate categories from IndexedDB:', error);
     }
   },
 

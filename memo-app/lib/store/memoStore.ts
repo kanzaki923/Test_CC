@@ -252,12 +252,10 @@ export const useMemoStore = create<MemoStore>((set, get) => ({
   },
 
   hydrate: async () => {
-    try {
-      const memos = await loadFromIndexedDB('memos');
-      const memosMap = new Map(memos.map((memo) => [memo.id, memo]));
+    const result = await loadFromIndexedDB('memos');
+    if (result.success && result.data) {
+      const memosMap = new Map(result.data.map((memo) => [memo.id, memo]));
       set({ memos: memosMap });
-    } catch (error) {
-      console.error('Failed to hydrate memos from IndexedDB:', error);
     }
   },
 

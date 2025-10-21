@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { useMemoStore } from '@/lib/store/memoStore';
 import { useCategoryStore } from '@/lib/store/categoryStore';
+import { useTagStore } from '@/lib/store/tagStore';
 
 /**
  * Initialize data from IndexedDB or create default categories and sample memos
@@ -9,6 +10,7 @@ export function useInitializeData() {
   const initialized = useRef(false);
   const hydrateMemos = useMemoStore((state) => state.hydrate);
   const hydrateCategories = useCategoryStore((state) => state.hydrate);
+  const hydrateTags = useTagStore((state) => state.hydrate);
   const addMemo = useMemoStore((state) => state.addMemo);
   const memos = useMemoStore((state) => state.memos);
   const addCategory = useCategoryStore((state) => state.addCategory);
@@ -20,7 +22,7 @@ export function useInitializeData() {
 
     // Load data from IndexedDB first
     const loadData = async () => {
-      await Promise.all([hydrateMemos(), hydrateCategories()]);
+      await Promise.all([hydrateMemos(), hydrateCategories(), hydrateTags()]);
 
       // Only initialize if no data exists after hydration
       if (categories.size === 0) {
@@ -86,5 +88,5 @@ export function useInitializeData() {
     };
 
     loadData();
-  }, [hydrateMemos, hydrateCategories, addMemo, addCategory, memos.size, categories.size]);
+  }, [hydrateMemos, hydrateCategories, hydrateTags, addMemo, addCategory, memos.size, categories.size]);
 }

@@ -5,8 +5,10 @@ import { Input } from "@/components/ui/Input";
 import { CategorySidebar } from "@/components/category/CategorySidebar";
 import { MemoList } from "@/components/memo/MemoList";
 import { MemoEditor } from "@/components/memo/MemoEditor";
+import { TagList } from "@/components/tag/TagList";
 import { Plus, Search } from "lucide-react";
 import { useMemoStore } from "@/lib/store/memoStore";
+import { useTagStore } from "@/lib/store/tagStore";
 import { useUIStore } from "@/lib/store/uiStore";
 import { useInitializeData } from "@/lib/hooks/useInitializeData";
 import { useKeyboardShortcuts } from "@/lib/hooks/useKeyboardShortcuts";
@@ -22,8 +24,12 @@ export default function Home() {
 
   // Get state from stores
   const addMemo = useMemoStore((state) => state.addMemo);
+  const tags = useTagStore((state) => state.getTagsSortedByUsage());
+  const getTagUsageCount = useTagStore((state) => state.getTagUsageCount);
   const selectedMemoId = useUIStore((state) => state.selectedMemoId);
   const setSelectedMemoId = useUIStore((state) => state.setSelectedMemoId);
+  const selectedTagNames = useUIStore((state) => state.selectedTagNames);
+  const toggleTagFilter = useUIStore((state) => state.toggleTagFilter);
   const searchQuery = useUIStore((state) => state.searchQuery);
   const setSearchQuery = useUIStore((state) => state.setSearchQuery);
   const sortBy = useUIStore((state) => state.sortBy);
@@ -99,6 +105,20 @@ export default function Home() {
             </select>
           </div>
         </div>
+
+        {/* タグフィルター */}
+        {tags.length > 0 && (
+          <div className="px-4 py-3 border-b border-border bg-background">
+            <div className="text-xs font-semibold text-muted-foreground mb-2">タグでフィルター</div>
+            <TagList
+              tags={tags}
+              selectedTagNames={selectedTagNames}
+              onTagClick={toggleTagFilter}
+              showCount={true}
+              getTagCount={getTagUsageCount}
+            />
+          </div>
+        )}
 
         {/* コンテンツエリア */}
         <div className="flex-1 flex overflow-hidden">
