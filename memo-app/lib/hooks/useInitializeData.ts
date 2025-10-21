@@ -8,13 +8,6 @@ import { useTagStore } from '@/lib/store/tagStore';
  */
 export function useInitializeData() {
   const initialized = useRef(false);
-  const hydrateMemos = useMemoStore((state) => state.hydrate);
-  const hydrateCategories = useCategoryStore((state) => state.hydrate);
-  const hydrateTags = useTagStore((state) => state.hydrate);
-  const addMemo = useMemoStore((state) => state.addMemo);
-  const memos = useMemoStore((state) => state.memos);
-  const addCategory = useCategoryStore((state) => state.addCategory);
-  const categories = useCategoryStore((state) => state.categories);
 
   useEffect(() => {
     if (initialized.current) return;
@@ -22,10 +15,23 @@ export function useInitializeData() {
 
     // Load data from IndexedDB first
     const loadData = async () => {
-      await Promise.all([hydrateMemos(), hydrateCategories(), hydrateTags()]);
+      const memoStore = useMemoStore.getState();
+      const categoryStore = useCategoryStore.getState();
+      const tagStore = useTagStore.getState();
+
+      await Promise.all([
+        memoStore.hydrate(),
+        categoryStore.hydrate(),
+        tagStore.hydrate()
+      ]);
+
+      // Get fresh state after hydration
+      const categoriesAfterHydration = useCategoryStore.getState().categories;
+      const memosAfterHydration = useMemoStore.getState().memos;
 
       // Only initialize if no data exists after hydration
-      if (categories.size === 0) {
+      if (categoriesAfterHydration.size === 0) {
+      const addCategory = categoryStore.addCategory;
       // Add default categories
       const workId = addCategory({
         name: '仕事',
@@ -46,8 +52,9 @@ export function useInitializeData() {
       });
 
       // Add sample memos if no memos exist
-      if (memos.size === 0) {
+      if (memosAfterHydration.size === 0) {
         const now = Date.now();
+        const addMemo = memoStore.addMemo;
 
         addMemo({
           title: 'プロジェクト会議メモ',
@@ -88,5 +95,6 @@ export function useInitializeData() {
     };
 
     loadData();
-  }, [hydrateMemos, hydrateCategories, hydrateTags, addMemo, addCategory, memos.size, categories.size]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run only once on mount
 }

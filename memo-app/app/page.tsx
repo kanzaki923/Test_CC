@@ -13,7 +13,7 @@ import { useUIStore } from "@/lib/store/uiStore";
 import { useInitializeData } from "@/lib/hooks/useInitializeData";
 import { useKeyboardShortcuts } from "@/lib/hooks/useKeyboardShortcuts";
 import { useToastStore } from "@/lib/store/toastStore";
-import { useRef } from "react";
+import { useRef, useMemo, useCallback } from "react";
 
 export default function Home() {
   // Initialize default data
@@ -24,8 +24,9 @@ export default function Home() {
 
   // Get state from stores
   const addMemo = useMemoStore((state) => state.addMemo);
-  const tags = useTagStore((state) => state.getTagsSortedByUsage());
-  const getTagUsageCount = useTagStore((state) => state.getTagUsageCount);
+  const tagsMap = useTagStore((state) => state.tags);
+  const memos = useMemoStore((state) => state.memos);
+
   const selectedMemoId = useUIStore((state) => state.selectedMemoId);
   const setSelectedMemoId = useUIStore((state) => state.setSelectedMemoId);
   const selectedTagNames = useUIStore((state) => state.selectedTagNames);
@@ -36,7 +37,48 @@ export default function Home() {
   const setSortBy = useUIStore((state) => state.setSortBy);
   const addToast = useToastStore((state) => state.addToast);
 
-  const handleNewMemo = () => {
+  // Sort tags by usage count (memoized to avoid infinite loop)
+  const tags = useMemo(() => {
+    const allTags = Array.from(tagsMap.values());
+
+    // Calculate usage count inline
+    const calculateUsageCount = (tagName: string) => {
+      let count = 0;
+      for (const memo of memos.values()) {
+        if (!memo.isDeleted && memo.tags.includes(tagName)) {
+          count++;
+        }
+      }
+      return count;
+    };
+
+    return allTags.sort((a, b) => {
+      const countA = calculateUsageCount(a.name);
+      const countB = calculateUsageCount(b.name);
+
+      // First sort by usage count (descending)
+      if (countB !== countA) {
+        return countB - countA;
+      }
+
+      // If usage count is same, sort by name (ascending)
+      return a.name.localeCompare(b.name);
+    });
+  }, [tagsMap, memos]);
+
+  // Memoized getTagUsageCount function for TagList component
+  const getTagUsageCount = useCallback((tagName: string) => {
+    let count = 0;
+    for (const memo of memos.values()) {
+      if (!memo.isDeleted && memo.tags.includes(tagName)) {
+        count++;
+      }
+    }
+    return count;
+  }, [memos]);
+
+  // Memoized event handlers to prevent keyboard shortcuts re-registration
+  const handleNewMemo = useCallback(() => {
     const id = addMemo({
       title: '新規メモ',
       content: '',
@@ -48,22 +90,25 @@ export default function Home() {
       type: 'success',
       duration: 2000,
     });
-  };
+  }, [addMemo, setSelectedMemoId, addToast]);
 
-  const handleFocusSearch = () => {
+  const handleFocusSearch = useCallback(() => {
     searchInputRef.current?.focus();
-  };
+  }, []);
 
-  const handleClearSelection = () => {
+  const handleClearSelection = useCallback(() => {
     setSelectedMemoId(null);
-  };
+  }, [setSelectedMemoId]);
 
-  // Register keyboard shortcuts
-  useKeyboardShortcuts({
+  // Memoize shortcuts object to prevent re-registration
+  const shortcuts = useMemo(() => ({
     'mod+n': handleNewMemo,
     'mod+k': handleFocusSearch,
     'escape': handleClearSelection,
-  });
+  }), [handleNewMemo, handleFocusSearch, handleClearSelection]);
+
+  // Register keyboard shortcuts
+  useKeyboardShortcuts(shortcuts);
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">

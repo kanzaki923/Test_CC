@@ -1,7 +1,7 @@
 "use client";
 
 import { Input } from "@/components/ui/Input";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { useMemoStore } from "@/lib/store/memoStore";
 import { useTagStore } from "@/lib/store/tagStore";
 import { useToastStore } from "@/lib/store/toastStore";
@@ -35,7 +35,7 @@ function formatDate(timestamp: number): string {
 export function MemoEditor({ memoId }: MemoEditorProps) {
   const memos = useMemoStore((state) => state.memos);
   const updateMemo = useMemoStore((state) => state.updateMemo);
-  const allTags = useTagStore((state) => state.getAllTags());
+  const tagsMap = useTagStore((state) => state.tags);
   const addTag = useTagStore((state) => state.addTag);
   const addToast = useToastStore((state) => state.addToast);
 
@@ -45,17 +45,24 @@ export function MemoEditor({ memoId }: MemoEditorProps) {
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
   const isFirstSave = useRef(true);
 
+  // Compute allTags from tagsMap
+  const allTags = useMemo(() => {
+    return Array.from(tagsMap.values()).sort((a, b) =>
+      a.name.localeCompare(b.name)
+    );
+  }, [tagsMap]);
+
   // Manual save function (triggered by Cmd+S)
-  const handleManualSave = () => {
+  const handleManualSave = useCallback(() => {
     if (!memoId) return;
 
-    const memo = memos.get(memoId);
+    const memo = useMemoStore.getState().memos.get(memoId);
     if (!memo) return;
 
     // Only save if there are changes
     const tagsChanged = JSON.stringify(memo.tags) !== JSON.stringify(tags);
     if (memo.title !== title || memo.content !== content || tagsChanged) {
-      updateMemo(memoId, { title, content, tags });
+      useMemoStore.getState().updateMemo(memoId, { title, content, tags });
       addToast({
         message: "メモを保存しました",
         type: "success",
@@ -64,15 +71,18 @@ export function MemoEditor({ memoId }: MemoEditorProps) {
       setSaveStatus("saved");
       setTimeout(() => setSaveStatus("idle"), 2000);
     }
-  };
+  }, [memoId, title, content, tags, addToast]);
+
+  // Memoize shortcuts object
+  const shortcuts = useMemo(() => ({
+    'mod+s': handleManualSave,
+  }), [handleManualSave]);
 
   // Register Cmd+S shortcut for manual save
-  useKeyboardShortcuts({
-    'mod+s': handleManualSave,
-  });
+  useKeyboardShortcuts(shortcuts);
 
   // Tag handlers
-  const handleAddTag = (tagName: string) => {
+  const handleAddTag = useCallback((tagName: string) => {
     // Create tag in store if it doesn't exist (with default color)
     const existingTag = allTags.find(t => t.name.toLowerCase() === tagName.toLowerCase());
     if (!existingTag) {
@@ -82,16 +92,16 @@ export function MemoEditor({ memoId }: MemoEditorProps) {
     }
 
     setTags(prev => [...prev, tagName]);
-  };
+  }, [allTags, addTag]);
 
-  const handleRemoveTag = (tagName: string) => {
+  const handleRemoveTag = useCallback((tagName: string) => {
     setTags(prev => prev.filter(t => t !== tagName));
-  };
+  }, []);
 
   // Load memo data when memoId changes
   useEffect(() => {
     if (memoId) {
-      const memo = memos.get(memoId);
+      const memo = useMemoStore.getState().memos.get(memoId);
       if (memo) {
         setTitle(memo.title);
         setContent(memo.content);
@@ -103,13 +113,13 @@ export function MemoEditor({ memoId }: MemoEditorProps) {
       setTags([]);
     }
     isFirstSave.current = true;
-  }, [memoId, memos]);
+  }, [memoId]);
 
   // Auto-save with debounce (silent, no toast notification)
   useEffect(() => {
     if (!memoId) return;
 
-    const memo = memos.get(memoId);
+    const memo = useMemoStore.getState().memos.get(memoId);
     if (!memo) return;
 
     // Check if content has changed
@@ -121,7 +131,7 @@ export function MemoEditor({ memoId }: MemoEditorProps) {
     setSaveStatus("saving");
 
     const timeoutId = setTimeout(() => {
-      updateMemo(memoId, { title, content, tags });
+      useMemoStore.getState().updateMemo(memoId, { title, content, tags });
       setSaveStatus("saved");
 
       // Auto-save is silent (no toast notification)
@@ -133,7 +143,7 @@ export function MemoEditor({ memoId }: MemoEditorProps) {
     }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [memoId, title, content, tags, memos, updateMemo]);
+  }, [memoId, title, content, tags]);
 
   if (!memoId) {
     return (
