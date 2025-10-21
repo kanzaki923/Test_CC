@@ -56,13 +56,13 @@ export function MemoEditor({ memoId }: MemoEditorProps) {
   const handleManualSave = useCallback(() => {
     if (!memoId) return;
 
-    const memo = memos.get(memoId);
+    const memo = useMemoStore.getState().memos.get(memoId);
     if (!memo) return;
 
     // Only save if there are changes
     const tagsChanged = JSON.stringify(memo.tags) !== JSON.stringify(tags);
     if (memo.title !== title || memo.content !== content || tagsChanged) {
-      updateMemo(memoId, { title, content, tags });
+      useMemoStore.getState().updateMemo(memoId, { title, content, tags });
       addToast({
         message: "メモを保存しました",
         type: "success",
@@ -71,7 +71,7 @@ export function MemoEditor({ memoId }: MemoEditorProps) {
       setSaveStatus("saved");
       setTimeout(() => setSaveStatus("idle"), 2000);
     }
-  }, [memoId, title, content, tags, memos, updateMemo, addToast]);
+  }, [memoId, title, content, tags, addToast]);
 
   // Memoize shortcuts object
   const shortcuts = useMemo(() => ({

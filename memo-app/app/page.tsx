@@ -27,12 +27,22 @@ export default function Home() {
   const tagsMap = useTagStore((state) => state.tags);
   const memos = useMemoStore((state) => state.memos);
 
+  const selectedMemoId = useUIStore((state) => state.selectedMemoId);
+  const setSelectedMemoId = useUIStore((state) => state.setSelectedMemoId);
+  const selectedTagNames = useUIStore((state) => state.selectedTagNames);
+  const toggleTagFilter = useUIStore((state) => state.toggleTagFilter);
+  const searchQuery = useUIStore((state) => state.searchQuery);
+  const setSearchQuery = useUIStore((state) => state.setSearchQuery);
+  const sortBy = useUIStore((state) => state.sortBy);
+  const setSortBy = useUIStore((state) => state.setSortBy);
+  const addToast = useToastStore((state) => state.addToast);
+
   // Sort tags by usage count (memoized to avoid infinite loop)
   const tags = useMemo(() => {
     const allTags = Array.from(tagsMap.values());
 
     // Calculate usage count inline
-    const getTagUsageCount = (tagName: string) => {
+    const calculateUsageCount = (tagName: string) => {
       let count = 0;
       for (const memo of memos.values()) {
         if (!memo.isDeleted && memo.tags.includes(tagName)) {
@@ -43,8 +53,8 @@ export default function Home() {
     };
 
     return allTags.sort((a, b) => {
-      const countA = getTagUsageCount(a.name);
-      const countB = getTagUsageCount(b.name);
+      const countA = calculateUsageCount(a.name);
+      const countB = calculateUsageCount(b.name);
 
       // First sort by usage count (descending)
       if (countB !== countA) {
@@ -56,15 +66,16 @@ export default function Home() {
     });
   }, [tagsMap, memos]);
 
-  const selectedMemoId = useUIStore((state) => state.selectedMemoId);
-  const setSelectedMemoId = useUIStore((state) => state.setSelectedMemoId);
-  const selectedTagNames = useUIStore((state) => state.selectedTagNames);
-  const toggleTagFilter = useUIStore((state) => state.toggleTagFilter);
-  const searchQuery = useUIStore((state) => state.searchQuery);
-  const setSearchQuery = useUIStore((state) => state.setSearchQuery);
-  const sortBy = useUIStore((state) => state.sortBy);
-  const setSortBy = useUIStore((state) => state.setSortBy);
-  const addToast = useToastStore((state) => state.addToast);
+  // Memoized getTagUsageCount function for TagList component
+  const getTagUsageCount = useCallback((tagName: string) => {
+    let count = 0;
+    for (const memo of memos.values()) {
+      if (!memo.isDeleted && memo.tags.includes(tagName)) {
+        count++;
+      }
+    }
+    return count;
+  }, [memos]);
 
   // Memoized event handlers to prevent keyboard shortcuts re-registration
   const handleNewMemo = useCallback(() => {
@@ -95,17 +106,6 @@ export default function Home() {
     'mod+k': handleFocusSearch,
     'escape': handleClearSelection,
   }), [handleNewMemo, handleFocusSearch, handleClearSelection]);
-
-  // Memoized getTagUsageCount function
-  const getTagUsageCount = useCallback((tagName: string) => {
-    let count = 0;
-    for (const memo of memos.values()) {
-      if (!memo.isDeleted && memo.tags.includes(tagName)) {
-        count++;
-      }
-    }
-    return count;
-  }, [memos]);
 
   // Register keyboard shortcuts
   useKeyboardShortcuts(shortcuts);
