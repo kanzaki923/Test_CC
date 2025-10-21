@@ -1,61 +1,9 @@
 "use client";
 
 import { MemoCard } from "./MemoCard";
-import type { Memo } from "@/lib/types";
-
-// ダミーデータ
-const dummyMemos: Memo[] = [
-  {
-    id: "1",
-    title: "プロジェクト会議メモ",
-    content: "次回のプロジェクト会議で議論する内容：\n- 新機能の仕様確認\n- スケジュール調整\n- リソース配分",
-    categoryId: "1",
-    createdAt: Date.now() - 1000 * 60 * 30, // 30分前
-    updatedAt: Date.now() - 1000 * 60 * 10, // 10分前
-    isPinned: true,
-    tags: [],
-  },
-  {
-    id: "2",
-    title: "買い物リスト",
-    content: "- 牛乳\n- 卵\n- パン\n- トマト\n- チーズ",
-    categoryId: "2",
-    createdAt: Date.now() - 1000 * 60 * 60 * 2, // 2時間前
-    updatedAt: Date.now() - 1000 * 60 * 60, // 1時間前
-    isPinned: false,
-    tags: [],
-  },
-  {
-    id: "3",
-    title: "アプリのアイデア",
-    content: "メモアプリの機能改善案：\n- ダークモード対応\n- タグ機能\n- クラウド同期\n- Markdown対応",
-    categoryId: "3",
-    createdAt: Date.now() - 1000 * 60 * 60 * 24, // 1日前
-    updatedAt: Date.now() - 1000 * 60 * 60 * 5, // 5時間前
-    isPinned: false,
-    tags: [],
-  },
-  {
-    id: "4",
-    title: "TypeScriptの学習メモ",
-    content: "型定義の基本：\ninterface vs type\nジェネリクスの使い方\nユーティリティタイプ",
-    categoryId: "1",
-    createdAt: Date.now() - 1000 * 60 * 60 * 24 * 2, // 2日前
-    updatedAt: Date.now() - 1000 * 60 * 60 * 24, // 1日前
-    isPinned: false,
-    tags: [],
-  },
-  {
-    id: "5",
-    title: "週末の予定",
-    content: "土曜日：友達とランチ\n日曜日：部屋の掃除、読書",
-    categoryId: "2",
-    createdAt: Date.now() - 1000 * 60 * 60 * 24 * 3, // 3日前
-    updatedAt: Date.now() - 1000 * 60 * 60 * 24 * 2, // 2日前
-    isPinned: false,
-    tags: [],
-  },
-];
+import { useMemoStore } from "@/lib/store/memoStore";
+import { useUIStore } from "@/lib/store/uiStore";
+import { useMemo } from "react";
 
 interface MemoListProps {
   selectedMemoId: string | null;
@@ -63,20 +11,90 @@ interface MemoListProps {
 }
 
 export function MemoList({ selectedMemoId, onSelectMemo }: MemoListProps) {
+  // Get memos from store
+  const memos = useMemoStore((state) => state.memos);
+  const deleteMemo = useMemoStore((state) => state.deleteMemo);
+  const togglePin = useMemoStore((state) => state.togglePin);
+  const searchMemos = useMemoStore((state) => state.searchMemos);
+
+  // Get UI state
+  const searchQuery = useUIStore((state) => state.searchQuery);
+  const sortBy = useUIStore((state) => state.sortBy);
+  const sortOrder = useUIStore((state) => state.sortOrder);
+  const selectedCategoryId = useUIStore((state) => state.selectedCategoryId);
+
+  // Filter and sort memos
+  const filteredMemos = useMemo(() => {
+    let memosArray = Array.from(memos.values());
+
+    // Filter by search query
+    if (searchQuery.trim()) {
+      memosArray = searchMemos(searchQuery);
+    }
+
+    // Filter by category if selected
+    if (selectedCategoryId !== null) {
+      memosArray = memosArray.filter(
+        (memo) => memo.categoryId === selectedCategoryId
+      );
+    }
+
+    // Sort memos
+    memosArray.sort((a, b) => {
+      let compareResult = 0;
+
+      switch (sortBy) {
+        case "title":
+          compareResult = a.title.localeCompare(b.title);
+          break;
+        case "createdAt":
+          compareResult = a.createdAt - b.createdAt;
+          break;
+        case "updatedAt":
+        default:
+          compareResult = a.updatedAt - b.updatedAt;
+          break;
+      }
+
+      return sortOrder === "asc" ? compareResult : -compareResult;
+    });
+
+    // Put pinned memos first
+    const pinnedMemos = memosArray.filter((memo) => memo.isPinned);
+    const unpinnedMemos = memosArray.filter((memo) => !memo.isPinned);
+
+    return [...pinnedMemos, ...unpinnedMemos];
+  }, [memos, searchQuery, searchMemos, selectedCategoryId, sortBy, sortOrder]);
+
+  const handleDelete = (id: string) => {
+    if (confirm('このメモを削除しますか？')) {
+      deleteMemo(id);
+      if (selectedMemoId === id) {
+        onSelectMemo(filteredMemos[0]?.id || '');
+      }
+    }
+  };
+
+  const handlePin = (id: string) => {
+    togglePin(id);
+  };
+
   return (
     <div className="h-full overflow-auto scrollbar-thin bg-background">
-      {dummyMemos.length === 0 ? (
+      {filteredMemos.length === 0 ? (
         <div className="flex h-full items-center justify-center text-muted-foreground">
           <p>メモがありません。新規作成してください。</p>
         </div>
       ) : (
         <div>
-          {dummyMemos.map((memo) => (
+          {filteredMemos.map((memo) => (
             <MemoCard
               key={memo.id}
               memo={memo}
               isSelected={selectedMemoId === memo.id}
               onClick={() => onSelectMemo(memo.id)}
+              onDelete={() => handleDelete(memo.id)}
+              onPin={() => handlePin(memo.id)}
             />
           ))}
         </div>
