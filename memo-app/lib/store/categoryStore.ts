@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { Category } from '@/lib/types';
+import { saveToIndexedDB, loadFromIndexedDB, deleteFromIndexedDB } from '@/lib/db/indexed-db';
 
 interface CategoryInput {
   name: string;
@@ -14,6 +15,7 @@ interface CategoryStore {
   deleteCategory: (id: string) => void;
   reorderCategories: (orderedIds: string[]) => void;
   getCategoriesSorted: () => Category[];
+  hydrate: () => Promise<void>;
   reset: () => void;
 }
 
@@ -44,6 +46,11 @@ export const useCategoryStore = create<CategoryStore>((set, get) => ({
       return { categories: newCategories };
     });
 
+    // IndexedDBに保存
+    saveToIndexedDB('categories', id, newCategory).catch((error) => {
+      console.error('Failed to save category to IndexedDB:', error);
+    });
+
     return id;
   },
 
@@ -52,10 +59,17 @@ export const useCategoryStore = create<CategoryStore>((set, get) => ({
       const category = state.categories.get(id);
       if (!category) return state;
 
-      const newCategories = new Map(state.categories);
-      newCategories.set(id, {
+      const updatedCategory = {
         ...category,
         ...updates,
+      };
+
+      const newCategories = new Map(state.categories);
+      newCategories.set(id, updatedCategory);
+
+      // IndexedDBに保存
+      saveToIndexedDB('categories', id, updatedCategory).catch((error) => {
+        console.error('Failed to update category in IndexedDB:', error);
       });
 
       return { categories: newCategories };
@@ -68,19 +82,33 @@ export const useCategoryStore = create<CategoryStore>((set, get) => ({
       newCategories.delete(id);
       return { categories: newCategories };
     });
+
+    // IndexedDBからも削除
+    deleteFromIndexedDB('categories', id).catch((error) => {
+      console.error('Failed to delete category from IndexedDB:', error);
+    });
   },
 
   reorderCategories: (orderedIds) => {
     set((state) => {
       const newCategories = new Map(state.categories);
+      const updates: Promise<void>[] = [];
 
       orderedIds.forEach((id, index) => {
         const category = newCategories.get(id);
         if (category) {
-          newCategories.set(id, {
+          const updatedCategory = {
             ...category,
             order: index,
-          });
+          };
+          newCategories.set(id, updatedCategory);
+
+          // IndexedDBに保存
+          updates.push(
+            saveToIndexedDB('categories', id, updatedCategory).catch((error) => {
+              console.error('Failed to update category order in IndexedDB:', error);
+            })
+          );
         }
       });
 
@@ -91,6 +119,16 @@ export const useCategoryStore = create<CategoryStore>((set, get) => ({
   getCategoriesSorted: () => {
     const { categories } = get();
     return Array.from(categories.values()).sort((a, b) => a.order - b.order);
+  },
+
+  hydrate: async () => {
+    try {
+      const categories = await loadFromIndexedDB('categories');
+      const categoriesMap = new Map(categories.map((category) => [category.id, category]));
+      set({ categories: categoriesMap });
+    } catch (error) {
+      console.error('Failed to hydrate categories from IndexedDB:', error);
+    }
   },
 
   reset: () => {
