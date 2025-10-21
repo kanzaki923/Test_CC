@@ -13,7 +13,7 @@ import { useUIStore } from "@/lib/store/uiStore";
 import { useInitializeData } from "@/lib/hooks/useInitializeData";
 import { useKeyboardShortcuts } from "@/lib/hooks/useKeyboardShortcuts";
 import { useToastStore } from "@/lib/store/toastStore";
-import { useRef, useMemo } from "react";
+import { useRef, useMemo, useCallback } from "react";
 
 export default function Home() {
   // Initialize default data
@@ -25,11 +25,23 @@ export default function Home() {
   // Get state from stores
   const addMemo = useMemoStore((state) => state.addMemo);
   const tagsMap = useTagStore((state) => state.tags);
-  const getTagUsageCount = useTagStore((state) => state.getTagUsageCount);
+  const memos = useMemoStore((state) => state.memos);
 
   // Sort tags by usage count (memoized to avoid infinite loop)
   const tags = useMemo(() => {
     const allTags = Array.from(tagsMap.values());
+
+    // Calculate usage count inline
+    const getTagUsageCount = (tagName: string) => {
+      let count = 0;
+      for (const memo of memos.values()) {
+        if (!memo.isDeleted && memo.tags.includes(tagName)) {
+          count++;
+        }
+      }
+      return count;
+    };
+
     return allTags.sort((a, b) => {
       const countA = getTagUsageCount(a.name);
       const countB = getTagUsageCount(b.name);
@@ -42,7 +54,7 @@ export default function Home() {
       // If usage count is same, sort by name (ascending)
       return a.name.localeCompare(b.name);
     });
-  }, [tagsMap, getTagUsageCount]);
+  }, [tagsMap, memos]);
 
   const selectedMemoId = useUIStore((state) => state.selectedMemoId);
   const setSelectedMemoId = useUIStore((state) => state.setSelectedMemoId);
@@ -54,7 +66,8 @@ export default function Home() {
   const setSortBy = useUIStore((state) => state.setSortBy);
   const addToast = useToastStore((state) => state.addToast);
 
-  const handleNewMemo = () => {
+  // Memoized event handlers to prevent keyboard shortcuts re-registration
+  const handleNewMemo = useCallback(() => {
     const id = addMemo({
       title: '新規メモ',
       content: '',
@@ -66,22 +79,36 @@ export default function Home() {
       type: 'success',
       duration: 2000,
     });
-  };
+  }, [addMemo, setSelectedMemoId, addToast]);
 
-  const handleFocusSearch = () => {
+  const handleFocusSearch = useCallback(() => {
     searchInputRef.current?.focus();
-  };
+  }, []);
 
-  const handleClearSelection = () => {
+  const handleClearSelection = useCallback(() => {
     setSelectedMemoId(null);
-  };
+  }, [setSelectedMemoId]);
 
-  // Register keyboard shortcuts
-  useKeyboardShortcuts({
+  // Memoize shortcuts object to prevent re-registration
+  const shortcuts = useMemo(() => ({
     'mod+n': handleNewMemo,
     'mod+k': handleFocusSearch,
     'escape': handleClearSelection,
-  });
+  }), [handleNewMemo, handleFocusSearch, handleClearSelection]);
+
+  // Memoized getTagUsageCount function
+  const getTagUsageCount = useCallback((tagName: string) => {
+    let count = 0;
+    for (const memo of memos.values()) {
+      if (!memo.isDeleted && memo.tags.includes(tagName)) {
+        count++;
+      }
+    }
+    return count;
+  }, [memos]);
+
+  // Register keyboard shortcuts
+  useKeyboardShortcuts(shortcuts);
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
