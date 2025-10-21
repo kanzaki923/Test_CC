@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { Memo } from '@/lib/types';
+import { saveToIndexedDB, loadFromIndexedDB, deleteFromIndexedDB } from '@/lib/db/indexed-db';
 
 interface MemoInput {
   title: string;
@@ -16,6 +17,7 @@ interface MemoStore {
   togglePin: (id: string) => void;
   getMemosByCategory: (categoryId: string | null) => Memo[];
   searchMemos: (query: string) => Memo[];
+  hydrate: () => Promise<void>;
   reset: () => void;
 }
 
@@ -47,6 +49,11 @@ export const useMemoStore = create<MemoStore>((set, get) => ({
       return { memos: newMemos };
     });
 
+    // 非同期でIndexedDBに保存（UIはブロックしない）
+    saveToIndexedDB('memos', id, newMemo).catch((error) => {
+      console.error('Failed to save memo to IndexedDB:', error);
+    });
+
     return id;
   },
 
@@ -55,11 +62,18 @@ export const useMemoStore = create<MemoStore>((set, get) => ({
       const memo = state.memos.get(id);
       if (!memo) return state;
 
-      const newMemos = new Map(state.memos);
-      newMemos.set(id, {
+      const updatedMemo = {
         ...memo,
         ...updates,
         updatedAt: Date.now(),
+      };
+
+      const newMemos = new Map(state.memos);
+      newMemos.set(id, updatedMemo);
+
+      // 非同期でIndexedDBに保存
+      saveToIndexedDB('memos', id, updatedMemo).catch((error) => {
+        console.error('Failed to update memo in IndexedDB:', error);
       });
 
       return { memos: newMemos };
@@ -72,6 +86,11 @@ export const useMemoStore = create<MemoStore>((set, get) => ({
       newMemos.delete(id);
       return { memos: newMemos };
     });
+
+    // IndexedDBからも削除
+    deleteFromIndexedDB('memos', id).catch((error) => {
+      console.error('Failed to delete memo from IndexedDB:', error);
+    });
   },
 
   togglePin: (id) => {
@@ -79,11 +98,18 @@ export const useMemoStore = create<MemoStore>((set, get) => ({
       const memo = state.memos.get(id);
       if (!memo) return state;
 
-      const newMemos = new Map(state.memos);
-      newMemos.set(id, {
+      const updatedMemo = {
         ...memo,
         isPinned: !memo.isPinned,
         updatedAt: Date.now(),
+      };
+
+      const newMemos = new Map(state.memos);
+      newMemos.set(id, updatedMemo);
+
+      // IndexedDBも更新
+      saveToIndexedDB('memos', id, updatedMemo).catch((error) => {
+        console.error('Failed to update pin status in IndexedDB:', error);
       });
 
       return { memos: newMemos };
@@ -106,6 +132,16 @@ export const useMemoStore = create<MemoStore>((set, get) => ({
         memo.title.toLowerCase().includes(lowerQuery) ||
         memo.content.toLowerCase().includes(lowerQuery)
     );
+  },
+
+  hydrate: async () => {
+    try {
+      const memos = await loadFromIndexedDB('memos');
+      const memosMap = new Map(memos.map((memo) => [memo.id, memo]));
+      set({ memos: memosMap });
+    } catch (error) {
+      console.error('Failed to hydrate memos from IndexedDB:', error);
+    }
   },
 
   reset: () => {

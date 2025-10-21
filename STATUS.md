@@ -1,8 +1,8 @@
 # 📊 プロジェクト状態 - メモアプリ
 
 **最終更新**: 2025-10-21
-**ブランチ**: `claude/continue-status-progress-011CUKzDqBBCwfMRe1fugmjb`
-**状態**: ✅ 動作するメモアプリ完成（Zustand + TDD）
+**ブランチ**: `claude/continue-status-progress-011CUL2mrBKRVAtf3wm3sc6U`
+**状態**: ✅ IndexedDB永続化実装完了（Zustand + TDD + IndexedDB）
 
 ---
 
@@ -22,7 +22,7 @@
 - **Next.js 15.5** プロジェクト（App Router）
 - **Tailwind CSS v4** 設定完了
 - **TypeScript** 完全型安全
-- **ビルド成功**: First Load JS 114 kB
+- **ビルド成功**: First Load JS 118 kB
 
 #### 3. 実装済みコンポーネント
 
@@ -56,12 +56,16 @@
 #### 6. 状態管理（Zustand）
 
 **ストア実装** (`lib/store/`)
-- ✅ **memoStore** - メモのCRUD、ピン留め、検索機能（14テスト）
-- ✅ **categoryStore** - カテゴリ管理、並び替え（12テスト）
+- ✅ **memoStore** - メモのCRUD、ピン留め、検索機能、IndexedDB同期（14テスト）
+- ✅ **categoryStore** - カテゴリ管理、並び替え、IndexedDB同期（12テスト）
 - ✅ **uiStore** - UI状態管理（17テスト）
 
+**データベース** (`lib/db/`)
+- ✅ **indexed-db.ts** - IndexedDBラッパー（idb使用）
+- ✅ **indexed-db.test.ts** - IndexedDB操作テスト（13テスト）
+
 **フック** (`lib/hooks/`)
-- ✅ **useInitializeData** - デフォルトデータ初期化
+- ✅ **useInitializeData** - IndexedDBからデータ読み込み＋デフォルトデータ初期化
 
 #### 7. テスト環境
 
@@ -75,8 +79,9 @@
 - ✅ `lib/store/memoStore.test.ts` - 14テスト
 - ✅ `lib/store/categoryStore.test.ts` - 12テスト
 - ✅ `lib/store/uiStore.test.ts` - 17テスト
+- ✅ `lib/db/indexed-db.test.ts` - 13テスト
 
-**テスト結果**: ✅ 49/49 tests passing
+**テスト結果**: ✅ 62/62 tests passing
 
 #### 8. 実装済み機能
 
@@ -100,9 +105,14 @@
 - ✅ 相対日時表示
 - ✅ 文字数カウント
 
+**データ永続化**
+- ✅ IndexedDB統合（idbライブラリ使用）
+- ✅ メモ・カテゴリの自動保存
+- ✅ アプリ起動時のデータ復元
+- ✅ 検索機能（IndexedDB対応）
+
 ### 🚧 未実装（次のフェーズ）
 
-- ❌ データ永続化（IndexedDB）
 - ❌ キーボードショートカット
 - ❌ トースト通知
 - ❌ ゴミ箱機能
@@ -593,7 +603,33 @@ npm install -D jest @testing-library/react ...
 
 ## ✅ チェックリスト
 
-### ✨ 今回のセッションで完了したこと（2025-10-21）
+### ✨ 今回のセッションで完了したこと（2025-10-21 - Session 2）
+
+**Phase 4: IndexedDB 永続化実装（TDD）**
+- [x] idb、fake-indexeddb パッケージインストール
+- [x] structuredClone polyfill 追加（jest.setup.js）
+- [x] IndexedDB ラッパー実装（lib/db/indexed-db.ts）
+  - [x] saveToIndexedDB - データ保存
+  - [x] loadFromIndexedDB - データ読み込み
+  - [x] deleteFromIndexedDB - データ削除
+  - [x] searchMemosIndexedDB - メモ検索
+  - [x] clearDatabase - テスト用クリア関数
+- [x] IndexedDB テスト作成（13テスト成功）
+- [x] memoStore に IndexedDB 同期機能追加
+  - [x] hydrate() - IndexedDBからデータ読み込み
+  - [x] 各CRUD操作でIndexedDB自動保存
+- [x] categoryStore に IndexedDB 同期機能追加
+  - [x] hydrate() - IndexedDBからデータ読み込み
+  - [x] 各CRUD操作でIndexedDB自動保存
+- [x] useInitializeData を更新（hydrate呼び出し追加）
+
+**結果**
+- [x] ビルド成功（118 kB First Load JS）
+- [x] 全テスト成功（62/62）
+- [x] データ永続化完全実装
+- [x] ブラウザをリロードしてもデータが保持される
+
+### 前回のセッション（2025-10-21 - Session 1）
 
 **Phase 1: テスト環境セットアップ**
 - [x] Jest + React Testing Library インストール
@@ -614,17 +650,12 @@ npm install -D jest @testing-library/react ...
 - [x] MemoEditor に自動保存機能追加
 - [x] CategorySidebar をストアに接続
 
-**結果**
-- [x] ビルド成功（116 kB First Load JS）
-- [x] 全テスト成功（49/49）
-- [x] Git コミット・プッシュ完了
-
 ### 次のセッションでやること
-- [ ] IndexedDB 永続化実装（TDD）
-- [ ] キーボードショートカット
-- [ ] トースト通知システム
-- [ ] ゴミ箱機能
-- [ ] タグ機能
+- [ ] キーボードショートカット実装
+- [ ] トースト通知システム実装
+- [ ] ゴミ箱機能実装
+- [ ] タグ機能実装
+- [ ] Markdown対応
 
 ---
 
@@ -686,7 +717,7 @@ PORT=3001 npm run dev
 ---
 
 **最終更新**: 2025-10-21
-**次回セッション**: IndexedDB 永続化実装から開始
-**状態**: ✅ 動作するメモアプリ完成、全テスト成功、コミット済み
+**次回セッション**: キーボードショートカット、トースト通知から開始
+**状態**: ✅ IndexedDB永続化完了、全テスト成功（62/62）、データ保持機能実装済み
 
 Happy Coding! 🚀✨

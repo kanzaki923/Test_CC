@@ -3,10 +3,12 @@ import { useMemoStore } from '@/lib/store/memoStore';
 import { useCategoryStore } from '@/lib/store/categoryStore';
 
 /**
- * Initialize default categories and sample memos on first load
+ * Initialize data from IndexedDB or create default categories and sample memos
  */
 export function useInitializeData() {
   const initialized = useRef(false);
+  const hydrateMemos = useMemoStore((state) => state.hydrate);
+  const hydrateCategories = useCategoryStore((state) => state.hydrate);
   const addMemo = useMemoStore((state) => state.addMemo);
   const memos = useMemoStore((state) => state.memos);
   const addCategory = useCategoryStore((state) => state.addCategory);
@@ -16,8 +18,12 @@ export function useInitializeData() {
     if (initialized.current) return;
     initialized.current = true;
 
-    // Only initialize if no data exists
-    if (categories.size === 0) {
+    // Load data from IndexedDB first
+    const loadData = async () => {
+      await Promise.all([hydrateMemos(), hydrateCategories()]);
+
+      // Only initialize if no data exists after hydration
+      if (categories.size === 0) {
       // Add default categories
       const workId = addCategory({
         name: '仕事',
@@ -77,5 +83,8 @@ export function useInitializeData() {
         });
       }
     }
-  }, [addMemo, addCategory, memos.size, categories.size]);
+    };
+
+    loadData();
+  }, [hydrateMemos, hydrateCategories, addMemo, addCategory, memos.size, categories.size]);
 }
