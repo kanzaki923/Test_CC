@@ -1,8 +1,9 @@
 "use client";
 
 import { Input } from "@/components/ui/Input";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useMemoStore } from "@/lib/store/memoStore";
+import { useToastStore } from "@/lib/store/toastStore";
 
 interface MemoEditorProps {
   memoId: string | null;
@@ -31,10 +32,12 @@ function formatDate(timestamp: number): string {
 export function MemoEditor({ memoId }: MemoEditorProps) {
   const memos = useMemoStore((state) => state.memos);
   const updateMemo = useMemoStore((state) => state.updateMemo);
+  const addToast = useToastStore((state) => state.addToast);
 
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const isFirstSave = useRef(true);
 
   // Load memo data when memoId changes
   useEffect(() => {
@@ -48,6 +51,7 @@ export function MemoEditor({ memoId }: MemoEditorProps) {
       setTitle("");
       setContent("");
     }
+    isFirstSave.current = true;
   }, [memoId, memos]);
 
   // Auto-save with debounce
@@ -68,13 +72,24 @@ export function MemoEditor({ memoId }: MemoEditorProps) {
       updateMemo(memoId, { title, content });
       setSaveStatus("saved");
 
+      // Show toast notification only after the first save
+      if (!isFirstSave.current) {
+        addToast({
+          message: "メモを保存しました",
+          type: "success",
+          duration: 2000,
+        });
+      } else {
+        isFirstSave.current = false;
+      }
+
       setTimeout(() => {
         setSaveStatus("idle");
       }, 2000);
     }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [memoId, title, content, memos, updateMemo]);
+  }, [memoId, title, content, memos, updateMemo, addToast]);
 
   if (!memoId) {
     return (

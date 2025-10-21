@@ -9,10 +9,16 @@ import { Plus, Search } from "lucide-react";
 import { useMemoStore } from "@/lib/store/memoStore";
 import { useUIStore } from "@/lib/store/uiStore";
 import { useInitializeData } from "@/lib/hooks/useInitializeData";
+import { useKeyboardShortcuts } from "@/lib/hooks/useKeyboardShortcuts";
+import { useToastStore } from "@/lib/store/toastStore";
+import { useRef } from "react";
 
 export default function Home() {
   // Initialize default data
   useInitializeData();
+
+  // Ref for search input
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Get state from stores
   const addMemo = useMemoStore((state) => state.addMemo);
@@ -22,6 +28,7 @@ export default function Home() {
   const setSearchQuery = useUIStore((state) => state.setSearchQuery);
   const sortBy = useUIStore((state) => state.sortBy);
   const setSortBy = useUIStore((state) => state.setSortBy);
+  const addToast = useToastStore((state) => state.addToast);
 
   const handleNewMemo = () => {
     const id = addMemo({
@@ -30,7 +37,27 @@ export default function Home() {
       categoryId: null,
     });
     setSelectedMemoId(id);
+    addToast({
+      message: '新しいメモを作成しました',
+      type: 'success',
+      duration: 2000,
+    });
   };
+
+  const handleFocusSearch = () => {
+    searchInputRef.current?.focus();
+  };
+
+  const handleClearSelection = () => {
+    setSelectedMemoId(null);
+  };
+
+  // Register keyboard shortcuts
+  useKeyboardShortcuts({
+    'mod+n': handleNewMemo,
+    'mod+k': handleFocusSearch,
+    'escape': handleClearSelection,
+  });
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -51,6 +78,7 @@ export default function Home() {
           <div className="flex-1 relative" data-tour="search">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
+              ref={searchInputRef}
               type="search"
               placeholder="メモを検索... (Cmd+K)"
               className="pl-10"

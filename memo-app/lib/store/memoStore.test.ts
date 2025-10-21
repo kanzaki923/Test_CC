@@ -129,8 +129,82 @@ describe('useMemoStore', () => {
     });
   });
 
-  describe('deleteMemo', () => {
-    it('should delete a memo', () => {
+  describe('deleteMemo (moveToTrash)', () => {
+    it('should move a memo to trash', () => {
+      const { result } = renderHook(() => useMemoStore());
+      let memoId: string;
+
+      act(() => {
+        memoId = result.current.addMemo({
+          title: 'Test',
+          content: 'Content',
+          categoryId: null,
+        });
+      });
+
+      expect(result.current.memos.has(memoId)).toBe(true);
+      expect(result.current.memos.get(memoId)?.isDeleted).toBe(false);
+
+      act(() => {
+        result.current.deleteMemo(memoId);
+      });
+
+      expect(result.current.memos.has(memoId)).toBe(true);
+      expect(result.current.memos.get(memoId)?.isDeleted).toBe(true);
+      expect(result.current.memos.get(memoId)?.deletedAt).not.toBeNull();
+    });
+
+    it('should unpin memo when moving to trash', () => {
+      const { result } = renderHook(() => useMemoStore());
+      let memoId: string;
+
+      act(() => {
+        memoId = result.current.addMemo({
+          title: 'Test',
+          content: 'Content',
+          categoryId: null,
+        });
+        result.current.togglePin(memoId);
+      });
+
+      expect(result.current.memos.get(memoId)?.isPinned).toBe(true);
+
+      act(() => {
+        result.current.deleteMemo(memoId);
+      });
+
+      expect(result.current.memos.get(memoId)?.isPinned).toBe(false);
+      expect(result.current.memos.get(memoId)?.isDeleted).toBe(true);
+    });
+  });
+
+  describe('restoreFromTrash', () => {
+    it('should restore a memo from trash', () => {
+      const { result } = renderHook(() => useMemoStore());
+      let memoId: string;
+
+      act(() => {
+        memoId = result.current.addMemo({
+          title: 'Test',
+          content: 'Content',
+          categoryId: null,
+        });
+        result.current.moveToTrash(memoId);
+      });
+
+      expect(result.current.memos.get(memoId)?.isDeleted).toBe(true);
+
+      act(() => {
+        result.current.restoreFromTrash(memoId);
+      });
+
+      expect(result.current.memos.get(memoId)?.isDeleted).toBe(false);
+      expect(result.current.memos.get(memoId)?.deletedAt).toBeNull();
+    });
+  });
+
+  describe('permanentlyDelete', () => {
+    it('should permanently delete a memo', () => {
       const { result } = renderHook(() => useMemoStore());
       let memoId: string;
 
@@ -145,15 +219,17 @@ describe('useMemoStore', () => {
       expect(result.current.memos.has(memoId)).toBe(true);
 
       act(() => {
-        result.current.deleteMemo(memoId);
+        result.current.permanentlyDelete(memoId);
       });
 
       expect(result.current.memos.has(memoId)).toBe(false);
     });
+  });
 
-    it('should not affect other memos when deleting', () => {
+  describe('getDeletedMemos', () => {
+    it('should return only deleted memos', () => {
       const { result } = renderHook(() => useMemoStore());
-      let memoId1: string, memoId2: string;
+      let memoId1: string, memoId2: string, memoId3: string;
 
       act(() => {
         memoId1 = result.current.addMemo({
@@ -166,14 +242,22 @@ describe('useMemoStore', () => {
           content: 'Content 2',
           categoryId: null,
         });
+        memoId3 = result.current.addMemo({
+          title: 'Memo 3',
+          content: 'Content 3',
+          categoryId: null,
+        });
+
+        result.current.moveToTrash(memoId1);
+        result.current.moveToTrash(memoId3);
       });
 
-      act(() => {
-        result.current.deleteMemo(memoId1);
-      });
+      const deletedMemos = result.current.getDeletedMemos();
 
-      expect(result.current.memos.has(memoId1)).toBe(false);
-      expect(result.current.memos.has(memoId2)).toBe(true);
+      expect(deletedMemos).toHaveLength(2);
+      expect(deletedMemos.find((m) => m.id === memoId1)).toBeDefined();
+      expect(deletedMemos.find((m) => m.id === memoId3)).toBeDefined();
+      expect(deletedMemos.find((m) => m.id === memoId2)).toBeUndefined();
     });
   });
 
