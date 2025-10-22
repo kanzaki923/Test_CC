@@ -116,9 +116,11 @@
 - ✅ キーボードショートカット（完了）
 - ✅ トースト通知（完了）
 - ✅ ゴミ箱機能（完了）
-- ❌ タグ機能
-- ❌ Markdown対応
-- ❌ エクスポート機能
+- ✅ タグ機能（完了）
+- ✅ Markdown対応（完了）
+- ✅ エクスポート機能（JSON、Markdown - 完了）
+- ❌ エクスポート機能（PDF）
+- ❌ パフォーマンス最適化（Web Worker検索など）
 
 ---
 
@@ -727,9 +729,50 @@ npm install -D jest @testing-library/react ...
 - [x] タグでメモをフィルタリング可能
 - [x] タグの追加・削除・表示が動作
 
+### ✨ 今回のセッションで完了したこと（2025-10-22 - Session 5）
+
+**Phase 9: Markdown対応とエクスポート機能実装（TDD）**
+- [x] Markdown関連パッケージインストール
+  - [x] react-markdown - Markdownレンダリング
+  - [x] remark-gfm - GitHub Flavored Markdown
+  - [x] rehype-sanitize - HTMLサニタイズ
+- [x] MarkdownPreview コンポーネント作成（11テスト成功）
+  - [x] Markdown → HTML レンダリング
+  - [x] GFMサポート（テーブル、打ち消し線、タスクリスト）
+  - [x] proseスタイル適用
+  - [x] カスタムクラス対応
+- [x] MemoEditor にMarkdownプレビュー機能追加
+  - [x] エディット/プレビューモード切り替えボタン
+  - [x] プレビューモードでMarkdownPreview表示
+  - [x] 既存機能への影響なし
+- [x] exportUtils 実装（13テスト成功）
+  - [x] exportToJSON - 単一メモJSON出力
+  - [x] exportMemosToJSON - 複数メモJSON出力
+  - [x] exportToMarkdown - YAML frontmatter付きMarkdown
+  - [x] exportMemoToMarkdown - メタデータ付きMarkdown
+  - [x] downloadFile - ファイルダウンロード処理
+  - [x] 各形式のダウンロード関数
+- [x] page.tsx にエクスポートUI追加
+  - [x] エクスポートドロップダウンメニュー
+  - [x] 全メモをJSON/Markdownでエクスポート
+  - [x] 選択中のメモをJSON/Markdownでエクスポート
+  - [x] トースト通知統合
+- [x] Jest設定更新
+  - [x] transformIgnorePatterns追加
+  - [x] react-markdownモック追加
+
+**結果**
+- [x] ビルド成功（167 kB First Load JS）
+- [x] 全テスト成功（124/124）
+- [x] Markdown対応完全実装
+- [x] エクスポート機能完全実装（JSON、Markdown）
+- [x] Reactベストプラクティス準拠
+- [x] 影響範囲を最小限に抑えた実装
+
 ### 次のセッションでやること
-- [ ] Markdown対応
-- [ ] エクスポート機能（JSON, Markdown, PDF）
+- [ ] 追加のエクスポート形式（PDF等）を検討
+- [ ] パフォーマンス最適化
+- [ ] コードレビューと改善
 
 ---
 
@@ -790,8 +833,8 @@ PORT=3001 npm run dev
 
 ---
 
-**最終更新**: 2025-10-21
-**次回セッション**: Markdown対応、エクスポート機能から開始
-**状態**: ✅ タグ機能完了、全テスト成功（100/100）、ビルド成功（121 kB）
+**最終更新**: 2025-10-22
+**次回セッション**: パフォーマンス最適化、コードレビューから開始
+**状態**: ✅ Markdown対応＋エクスポート機能完了、全テスト成功（124/124）、ビルド成功（167 kB）
 
 Happy Coding! 🚀✨
