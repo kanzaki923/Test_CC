@@ -7,6 +7,8 @@ import { useTagStore } from "@/lib/store/tagStore";
 import { useToastStore } from "@/lib/store/toastStore";
 import { useKeyboardShortcuts } from "@/lib/hooks/useKeyboardShortcuts";
 import { TagInput } from "@/components/tag/TagInput";
+import { MarkdownPreview } from "@/components/ui/MarkdownPreview";
+import { Button } from "@/components/ui/Button";
 
 interface MemoEditorProps {
   memoId: string | null;
@@ -43,6 +45,7 @@ export function MemoEditor({ memoId }: MemoEditorProps) {
   const [content, setContent] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+  const [isPreviewMode, setIsPreviewMode] = useState(false);
   const isFirstSave = useRef(true);
 
   // Compute allTags from tagsMap
@@ -173,20 +176,39 @@ export function MemoEditor({ memoId }: MemoEditorProps) {
           className="text-lg font-semibold border-none focus-visible:ring-0 shadow-none px-0"
         />
 
-        <div className="text-xs text-muted-foreground ml-4 flex items-center gap-2">
-          {saveStatus === "saving" && <span>保存中...</span>}
-          {saveStatus === "saved" && <span>✓ 保存済み</span>}
-          {saveStatus === "idle" && <span className="text-muted-foreground/60">Cmd+S で保存</span>}
+        <div className="text-xs text-muted-foreground ml-4 flex items-center gap-3">
+          {/* Preview Toggle */}
+          <Button
+            variant={isPreviewMode ? "default" : "ghost"}
+            size="sm"
+            onClick={() => setIsPreviewMode(!isPreviewMode)}
+            className="h-7 text-xs"
+          >
+            {isPreviewMode ? "編集" : "プレビュー"}
+          </Button>
+
+          {/* Save Status */}
+          <div className="flex items-center">
+            {saveStatus === "saving" && <span>保存中...</span>}
+            {saveStatus === "saved" && <span>✓ 保存済み</span>}
+            {saveStatus === "idle" && <span className="text-muted-foreground/60">Cmd+S で保存</span>}
+          </div>
         </div>
       </div>
 
-      {/* エディタ */}
-      <textarea
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        placeholder="メモを入力..."
-        className="flex-1 resize-none p-4 focus:outline-none bg-background text-foreground font-mono text-sm"
-      />
+      {/* エディタ or プレビュー */}
+      {isPreviewMode ? (
+        <div className="flex-1 overflow-auto p-4">
+          <MarkdownPreview content={content} />
+        </div>
+      ) : (
+        <textarea
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          placeholder="メモを入力..."
+          className="flex-1 resize-none p-4 focus:outline-none bg-background text-foreground font-mono text-sm"
+        />
+      )}
 
       {/* タグエリア */}
       <div className="px-4 py-3 border-t border-border bg-background">

@@ -6,14 +6,15 @@ import { CategorySidebar } from "@/components/category/CategorySidebar";
 import { MemoList } from "@/components/memo/MemoList";
 import { MemoEditor } from "@/components/memo/MemoEditor";
 import { TagList } from "@/components/tag/TagList";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Download } from "lucide-react";
 import { useMemoStore } from "@/lib/store/memoStore";
 import { useTagStore } from "@/lib/store/tagStore";
 import { useUIStore } from "@/lib/store/uiStore";
 import { useInitializeData } from "@/lib/hooks/useInitializeData";
 import { useKeyboardShortcuts } from "@/lib/hooks/useKeyboardShortcuts";
 import { useToastStore } from "@/lib/store/toastStore";
-import { useRef, useMemo, useCallback } from "react";
+import { useRef, useMemo, useCallback, useState } from "react";
+import { downloadMemosAsJSON, downloadMemosAsMarkdown, downloadMemoAsJSON, downloadMemoAsMarkdown } from "@/lib/utils/exportUtils";
 
 export default function Home() {
   // Initialize default data
@@ -21,6 +22,9 @@ export default function Home() {
 
   // Ref for search input
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Export menu state
+  const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
 
   // Get state from stores
   const addMemo = useMemoStore((state) => state.addMemo);
@@ -100,6 +104,57 @@ export default function Home() {
     setSelectedMemoId(null);
   }, [setSelectedMemoId]);
 
+  // Export handlers
+  const handleExportAllAsJSON = useCallback(() => {
+    const allMemos = Array.from(memos.values()).filter(m => !m.isDeleted);
+    downloadMemosAsJSON(allMemos);
+    addToast({
+      message: `${allMemos.length}件のメモをJSONでエクスポートしました`,
+      type: 'success',
+      duration: 3000,
+    });
+    setIsExportMenuOpen(false);
+  }, [memos, addToast]);
+
+  const handleExportAllAsMarkdown = useCallback(() => {
+    const allMemos = Array.from(memos.values()).filter(m => !m.isDeleted);
+    downloadMemosAsMarkdown(allMemos);
+    addToast({
+      message: `${allMemos.length}件のメモをMarkdownでエクスポートしました`,
+      type: 'success',
+      duration: 3000,
+    });
+    setIsExportMenuOpen(false);
+  }, [memos, addToast]);
+
+  const handleExportSelectedAsJSON = useCallback(() => {
+    if (!selectedMemoId) return;
+    const memo = memos.get(selectedMemoId);
+    if (memo && !memo.isDeleted) {
+      downloadMemoAsJSON(memo);
+      addToast({
+        message: 'メモをJSONでエクスポートしました',
+        type: 'success',
+        duration: 3000,
+      });
+      setIsExportMenuOpen(false);
+    }
+  }, [selectedMemoId, memos, addToast]);
+
+  const handleExportSelectedAsMarkdown = useCallback(() => {
+    if (!selectedMemoId) return;
+    const memo = memos.get(selectedMemoId);
+    if (memo && !memo.isDeleted) {
+      downloadMemoAsMarkdown(memo);
+      addToast({
+        message: 'メモをMarkdownでエクスポートしました',
+        type: 'success',
+        duration: 3000,
+      });
+      setIsExportMenuOpen(false);
+    }
+  }, [selectedMemoId, memos, addToast]);
+
   // Memoize shortcuts object to prevent re-registration
   const shortcuts = useMemo(() => ({
     'mod+n': handleNewMemo,
@@ -148,6 +203,69 @@ export default function Home() {
               <option value="createdAt">作成日時</option>
               <option value="title">タイトル</option>
             </select>
+
+            {/* Export Button with Dropdown */}
+            <div className="relative">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => setIsExportMenuOpen(!isExportMenuOpen)}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                エクスポート
+              </Button>
+
+              {isExportMenuOpen && (
+                <>
+                  {/* Backdrop to close menu */}
+                  <div
+                    className="fixed inset-0 z-10"
+                    onClick={() => setIsExportMenuOpen(false)}
+                  />
+
+                  {/* Dropdown Menu */}
+                  <div className="absolute right-0 mt-2 w-64 bg-background border border-border rounded-md shadow-lg z-20">
+                    <div className="py-1">
+                      <div className="px-4 py-2 text-xs font-semibold text-muted-foreground border-b border-border">
+                        全メモをエクスポート
+                      </div>
+                      <button
+                        onClick={handleExportAllAsJSON}
+                        className="w-full text-left px-4 py-2 text-sm hover:bg-accent transition-colors"
+                      >
+                        JSON形式でエクスポート
+                      </button>
+                      <button
+                        onClick={handleExportAllAsMarkdown}
+                        className="w-full text-left px-4 py-2 text-sm hover:bg-accent transition-colors"
+                      >
+                        Markdown形式でエクスポート
+                      </button>
+
+                      {selectedMemoId && (
+                        <>
+                          <div className="px-4 py-2 text-xs font-semibold text-muted-foreground border-t border-border mt-1">
+                            選択中のメモをエクスポート
+                          </div>
+                          <button
+                            onClick={handleExportSelectedAsJSON}
+                            className="w-full text-left px-4 py-2 text-sm hover:bg-accent transition-colors"
+                          >
+                            JSON形式でエクスポート
+                          </button>
+                          <button
+                            onClick={handleExportSelectedAsMarkdown}
+                            className="w-full text-left px-4 py-2 text-sm hover:bg-accent transition-colors"
+                          >
+                            Markdown形式でエクスポート
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
